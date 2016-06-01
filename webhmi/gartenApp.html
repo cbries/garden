@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+ <title>GartenApp</title>
+ <script type="text/javascript" src="jquery.min.js"></script>
+ <script type="text/javascript">
+ 
+var cfg = {
+	wsaddr: "ws://localhost:8080"
+};
+
+var valveMap = [
+	{ name: "main", state: false },
+	{ name: "trees", state: false },
+	{ name: "reserved", state: false }
+];
+
+// ################################################################
+
+var btnValveMain = null;
+var btnValveTrees = null;
+var btnValveReserved = null;
+ 
+function initStates()
+{
+	btnValveMain.toggleClass('toggle-button-disabled');
+	btnValveTrees.toggleClass('toggle-button-disabled');
+	btnValveReserved.toggleClass('toggle-button-disabled');
+}
+
+function refreshStates()
+{
+	if(valveMap[0].state == true)
+	{
+		btnValveMain.addClass('toggle-button-selected');
+		btnValveMain.removeClass('toggle-button-disabled');
+	}
+	else		
+	{
+		btnValveMain.addClass('toggle-button-disabled');
+		btnValveMain.removeClass('toggle-button-selected');
+	}
+
+	if(valveMap[1].state == true)
+	{
+		btnValveTrees.addClass('toggle-button-selected');
+		btnValveTrees.removeClass('toggle-button-disabled');
+	}
+	else		
+	{
+		btnValveTrees.addClass('toggle-button-disabled');
+		btnValveTrees.removeClass('toggle-button-selected');
+	}
+
+	if(valveMap[2].state == true)
+	{
+		btnValveReserved.addClass('toggle-button-selected');
+		btnValveReserved.removeClass('toggle-button-disabled');
+	}
+	else		
+	{
+		btnValveReserved.addClass('toggle-button-disabled');
+		btnValveReserved.removeClass('toggle-button-selected');
+	}
+		
+}
+
+function handleState(valveData)
+{
+	for(var i=0; i < valveData.valves.length; ++i)
+	{
+		var o = valveData.valves[i];
+	
+		for(var j=0; j < valveMap.length; ++j)
+		{
+			if(valveMap[j].name == o.name)
+			{
+				valveMap[j].state = o.state;
+			}
+		}
+	}
+	
+	refreshStates();
+}
+
+$(document).ready(function() {
+
+var websocket = new WebSocket(cfg.wsaddr);
+
+btnValveMain = $('#btnValveMain');
+btnValveTrees = $('#btnValveTrees');
+btnValveReserved = $('#btnValveReserved');
+
+btnValveMain.click(function(){
+	websocket.send(JSON.stringify({valve: "main"}));
+});
+btnValveTrees.click(function(){
+	websocket.send(JSON.stringify({valve: "trees"}));
+});
+btnValveReserved.click(function(){
+	websocket.send(JSON.stringify({valve: "reserved"}));
+});
+
+websocket.onmessage = function(str) {
+	try {
+		var json = JSON.parse(str.data);
+		if(json.type == 'state')
+			handleState(json.data);
+		else
+			; // ignore
+	} catch(ex) {
+		// ignore
+	}
+};
+
+});
+</script>
+ <style>
+ 
+body { text-align: center; background-color: #C63D0F; color: #3B3738; }
+#page-wrap { margin: 0 auto; }
+.container { width: 100%; background-color: #FDF3E7; border-radius: 25px; }
+
+h3 { height: 40px; color: #7E8F7C; }
+
+.toggle-button { background-color: white; margin: 5px 0; border-radius: 20px; border: 2px solid #D0D0D0; height: 24px; cursor: pointer; width: 50px; position: relative; display: inline-block; user-select: none; -webkit-user-select: none; -ms-user-select: none; -moz-user-select: none; }
+
+.toggle-button button { cursor: pointer; outline: 0; display:block; position: absolute; left: 0; top: 0; border-radius: 100%; width: 30px; height: 30px; background-color: white; float: left; margin: -3px 0 0 -3px; border: 2px solid #D0D0D0; transition: left 0.3s; }
+
+.toggle-button-selected { background-color: #83B152; border: 2px solid #7DA652; }
+.toggle-button-selected button { left: 26px; top: 0; margin: 0; border: none; width: 24px; height: 24px; box-shadow: 0 0 4px rgba(0,0,0,0.1); }
+
+.toggle-button-disabled { background-color: #ff0000; border: 1px solid #a24e4e; }
+.toggle-button-disabled button { left: 0px; top: 0; margin: 0; border: none; width: 24px; height: 24px; box-shadow: 0 0 4px rgba(0,0,0,0.1); }
+
+ </style>
+</head>
+<body>
+
+<div id="page-wrap">
+
+<div class="container">
+	<h3>Vorgarten<br>(trees)</h3> <div class="toggle-button" id="btnValveTrees"><button></button></div>
+    <h3>Vorgarten<br>(large area)</h3> <div class="toggle-button" id="btnValveMain"><button></button></div>
+	<h3>reserviert<br>(not used)</h3> <div class="toggle-button" id="btnValveReserved"><button></button></div>
+</div>
+
+</div> <!-- page-wrap -->
+     
+</body>
+</html>
