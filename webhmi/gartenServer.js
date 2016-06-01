@@ -8,16 +8,30 @@
 
 var WebSocketServer = require('websocket').server;
 var http = require('http');
-var Gpio = require('onoff').Gpio;
+// var Gpio = require('onoff').Gpio;
+var exec = require('child_process').execSync;
+
+var fs = require('fs');
+var util = require('util');
+var log_file = fs.createWriteStream(__dirname + '/debug.log', {flags : 'w'});
+var log_stdout = process.stdout;
+
+console.log = function(d) { //
+  log_file.write(util.format(d) + '\n');
+  log_stdout.write(util.format(d) + '\n');
+};
+console.logfile = function(d) { //
+  log_file.write(util.format(d) + '\n');
+}
 
 // ###################################################
 //  C O N F I G U R A T I O N
 // ###################################################
 
-var valveMain = new Gpio(23, 'out');
-var valveTrees = new Gpio(24, 'out');
-var valveReserved = new Gpio(25, 'out');
-var wsListenPort = 8080;
+var valveMain = 4; // new Gpio(16, 'out');
+var valveTrees = 5; // new Gpio(18, 'out');
+var valveReserved = 6; // new Gpio(22, 'out');
+var wsListenPort = 23234;
 
 // ###################################################
 
@@ -30,10 +44,29 @@ var server = http.createServer(function(request, response) {
 });
 
 var valveStates = { "valves" : [
-	{"name": "main", "state": true, "lastAccess": 0, "gpiopin" : valveMain},
+	{"name": "main", "state": false, "lastAccess": 0, "gpiopin" : valveMain},
 	{"name": "trees", "state": false, "lastAccess": 0, "gpiopin" : valveTrees},
-	{"name": "reserved", "state": true, "lastAccess": 0, "gpiopin" : valveReserved},
+	{"name": "reserved", "state": false, "lastAccess": 0, "gpiopin" : valveReserved},
 ]};
+
+function execLog(error, stdout, stderr) 
+{
+	console.logfile(' Exec::Stdout: ' + stdout);
+	console.logfile(' Exec::Stderr: ' + stderr);
+	if (error !== null) {
+		console.log(' Exec failure: ' + error);
+	}
+}
+
+// reset
+valveStates["valves"].forEach(function(entry){
+	
+	var cmd = "gpio mode " + entry.gpiopin + " out";;
+	var child = exec(cmd, execLog);
+
+	    cmd = "gpio write " + entry.gpiopin + " 0";
+	    child = exec(cmd, execLog);
+});
 
 function isValidValve(name)
 {
@@ -73,10 +106,16 @@ function setGpio(valve) {
 		
 	console.log(p2 + "::GPIO: " + p0 + " -> " + p1 + " (" + valve.lastAccess + ")");
 	
-	if(p1 == true)
-		p0.writeSync(0);
+	if(p1 === true)
+	{
+		var cmd = "gpio write " + p0 + " 1";
+        	var child = exec(cmd, execLog);
+	}
 	else
-		p0.writeSync(1);
+	{
+		var cmd = "gpio write " + p0 + " 0";
+	        var child = exec(cmd, execLog);
+	}
 }
 
 function sendError(c, msg) {
@@ -159,6 +198,7 @@ wsServer.on('request', function(request) {
 	c.on('message', function(msg) {
 		try 
 		{
+			console.log("Received: " + msg.utf8Data);
 			var json = JSON.parse(msg.utf8Data);
 			
 			handlingMessage(c, json);

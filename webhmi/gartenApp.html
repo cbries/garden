@@ -2,12 +2,11 @@
 <html>
 <head>
  <title>GartenApp</title>
+ <meta name="viewport" content="width=device-width, initial-scale=1">
  <script type="text/javascript" src="jquery.min.js"></script>
  <script type="text/javascript">
  
-var cfg = {
-	wsaddr: "ws://localhost:8080"
-};
+var cfg = { wsaddr: "ws://192.168.137.200:23234" };
 
 var valveMap = [
 	{ name: "main", state: false },
@@ -118,6 +117,7 @@ websocket.onmessage = function(str) {
  <style>
  
 body { text-align: center; background-color: #C63D0F; color: #3B3738; }
+
 #page-wrap { margin: 0 auto; }
 .container { width: 100%; background-color: #FDF3E7; border-radius: 25px; }
 
@@ -140,9 +140,9 @@ h3 { height: 40px; color: #7E8F7C; }
 <div id="page-wrap">
 
 <div class="container">
-	<h3>Vorgarten<br>(trees)</h3> <div class="toggle-button" id="btnValveTrees"><button></button></div>
-    <h3>Vorgarten<br>(large area)</h3> <div class="toggle-button" id="btnValveMain"><button></button></div>
-	<h3>reserviert<br>(not used)</h3> <div class="toggle-button" id="btnValveReserved"><button></button></div>
+  <h3>Front Garden<br>(trees)</h3> <div class="toggle-button" id="btnValveTrees"><button></button></div>
+  <h3>Front Garden<br>(large area)</h3> <div class="toggle-button" id="btnValveMain"><button></button></div>
+  <h3>reserved<br>(not used)</h3> <div class="toggle-button" id="btnValveReserved"><button></button></div>
 </div>
 
 </div> <!-- page-wrap -->
