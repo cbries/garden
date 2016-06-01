@@ -6,12 +6,12 @@
  <script type="text/javascript" src="jquery.min.js"></script>
  <script type="text/javascript">
  
-var cfg = { wsaddr: "ws://192.168.137.200:23234" };
+var cfg = { wsaddr: "ws://192.168.178.33:23234" };
 
 var valveMap = [
-	{ name: "main", state: false },
-	{ name: "trees", state: false },
-	{ name: "reserved", state: false }
+	{ name: "main", state: false, lastAccess: 0 },
+	{ name: "trees", state: false, lastAccess: 0 },
+	{ name: "reserved", state: false, laseAccess: 0 }
 ];
 
 // ################################################################
@@ -25,6 +25,12 @@ function initStates()
 	btnValveMain.toggleClass('toggle-button-disabled');
 	btnValveTrees.toggleClass('toggle-button-disabled');
 	btnValveReserved.toggleClass('toggle-button-disabled');
+}
+
+function twoDigits(n){
+  if(n < 10)
+    return '0' + n; // Add leading zero
+  return n;
 }
 
 function refreshStates()
@@ -75,6 +81,7 @@ function handleState(valveData)
 			if(valveMap[j].name == o.name)
 			{
 				valveMap[j].state = o.state;
+				valveMap[j].lastAccess = o.lastAccess;
 			}
 		}
 	}
@@ -83,6 +90,27 @@ function handleState(valveData)
 }
 
 $(document).ready(function() {
+
+	setInterval(function() { 
+		// txttreesRunning
+		// txtainRunning
+		// txtreservedRunning
+
+		valveMap.forEach(function(entry) {
+			var n = "txt" + entry.name + "Running";
+			var no = $('#' + n);
+			if(entry.state === true)
+			{
+				var di = parseInt((new Date().getTime() - entry.lastAccess) / 1000);
+				var hours = parseInt(di / 3600);
+				var minutes = parseInt((di - hours * 3600) / 60);
+				var seconds = parseInt(di % 60);
+				no.html('<b>Runs for ' + (twoDigits(hours) +":"+twoDigits(minutes)+":"+twoDigits(seconds)) + '</b>');
+			}
+			else
+				no.html('<b>not running</b>');	
+		});	
+	}, 500);
 
 var websocket = new WebSocket(cfg.wsaddr);
 
@@ -121,7 +149,7 @@ body { text-align: center; background-color: #C63D0F; color: #3B3738; }
 #page-wrap { margin: 0 auto; }
 .container { width: 100%; background-color: #FDF3E7; border-radius: 25px; }
 
-h3 { height: 40px; color: #7E8F7C; }
+h3 { height: 30px; color: #7E8F7C; }
 
 .toggle-button { background-color: white; margin: 5px 0; border-radius: 20px; border: 2px solid #D0D0D0; height: 24px; cursor: pointer; width: 50px; position: relative; display: inline-block; user-select: none; -webkit-user-select: none; -ms-user-select: none; -moz-user-select: none; }
 
@@ -140,9 +168,9 @@ h3 { height: 40px; color: #7E8F7C; }
 <div id="page-wrap">
 
 <div class="container">
-  <h3>Front Garden<br>(trees)</h3> <div class="toggle-button" id="btnValveTrees"><button></button></div>
-  <h3>Front Garden<br>(large area)</h3> <div class="toggle-button" id="btnValveMain"><button></button></div>
-  <h3>reserved<br>(not used)</h3> <div class="toggle-button" id="btnValveReserved"><button></button></div>
+  <h3>Front Garden<br>(trees)</h3> <div id="txttreesRunning"></div> <div class="toggle-button" id="btnValveTrees"><button></button></div>
+  <h3>Front Garden<br>(large area)</h3> <div id="txtmainRunning"></div> <div class="toggle-button" id="btnValveMain"><button></button></div>
+  <h3>reserved<br>(not used)</h3> <div id="txtreservedRunning"></div> <div class="toggle-button" id="btnValveReserved"><button></button></div>
 </div>
 
 </div> <!-- page-wrap -->
