@@ -6,7 +6,8 @@
  <script type="text/javascript" src="jquery.min.js"></script>
  <script type="text/javascript">
  
-var cfg = { wsaddr: "ws://192.168.178.33:23234" };
+var cfg = { wsaddr: "ws://localhost:23234" };
+//var cfg = { wsaddr: "ws://192.168.178.33:23234" };
 
 var valveMap = [
 	{ name: "main", state: false, lastAccess: 0 },
@@ -20,21 +21,19 @@ var btnValveMain = null;
 var btnValveTrees = null;
 var btnValveReserved = null;
  
-function initStates()
-{
+function initStates() {
 	btnValveMain.toggleClass('toggle-button-disabled');
 	btnValveTrees.toggleClass('toggle-button-disabled');
 	btnValveReserved.toggleClass('toggle-button-disabled');
 }
 
-function twoDigits(n){
+function twoDigits(n) {
   if(n < 10)
-    return '0' + n; // Add leading zero
+    return '0' + n;
   return n;
 }
 
-function refreshStates()
-{
+function refreshStates() {
 	if(valveMap[0].state == true)
 	{
 		btnValveMain.addClass('toggle-button-selected');
@@ -112,36 +111,72 @@ $(document).ready(function() {
 		});	
 	}, 500);
 
-var websocket = new WebSocket(cfg.wsaddr);
+	var websocket = new WebSocket(cfg.wsaddr);
 
-btnValveMain = $('#btnValveMain');
-btnValveTrees = $('#btnValveTrees');
-btnValveReserved = $('#btnValveReserved');
+	btnValveMain = $('#btnValveMain');
+	btnValveTrees = $('#btnValveTrees');
+	btnValveReserved = $('#btnValveReserved');
 
-btnValveMain.click(function(){
-	websocket.send(JSON.stringify({valve: "main"}));
-});
-btnValveTrees.click(function(){
-	websocket.send(JSON.stringify({valve: "trees"}));
-});
-btnValveReserved.click(function(){
-	websocket.send(JSON.stringify({valve: "reserved"}));
-});
+	btnValveMain.click(function(){
+		websocket.send(JSON.stringify({valve: "main"}));
+	});
+	btnValveTrees.click(function(){
+		websocket.send(JSON.stringify({valve: "trees"}));
+	});
+	btnValveReserved.click(function(){
+		websocket.send(JSON.stringify({valve: "reserved"}));
+	});
 
-websocket.onmessage = function(str) {
-	try {
-		var json = JSON.parse(str.data);
-		if(json.type == 'state')
-			handleState(json.data);
-		else
-			; // ignore
-	} catch(ex) {
-		// ignore
-	}
-};
+	var wasConnected = false;
 
-});
+	websocket.onopen = function(evt) {
+		wasConnected = true;
+	};
+
+	websocket.onmessage = function(str) {
+		try {
+			var json = JSON.parse(str.data);
+			if(json.type == 'state')
+				handleState(json.data);
+			else
+				; // ignore
+		} catch(ex) {
+			// ignore
+		}
+	};
+
+	function closeHmi() {
+		// todo 
+	};
+
+	function showErrorOnHmi(msg) {
+		var o0 = $('#errorContainer');
+		o0.show();
+
+		var o1 = $('#errorMessage');
+		o1.html(msg);
+	};
+
+	websocket.onerror = function(evt) {
+		showErrorOnHmi("Can not connect to the server, hmpf ;-(<br>We will try to reconnect automatically...<br>");
+		closeHmi();
+
+		setTimeout(function() {
+			location.reload();
+		}, 2500);
+	};
+
+	websocket.onclose = function(evt) {
+		if(wasConnected === true)
+		{
+			showErrorOnHmi("Connection closed: " + evt.code + " (" + evt.reason + ")<br>Just reload this page!");
+			closeHmi();	
+		}
+	};
+
+}); // document ready
 </script>
+
  <style>
  
 body { text-align: center; background-color: #C63D0F; color: #3B3738; }
@@ -161,6 +196,8 @@ h3 { height: 30px; color: #7E8F7C; }
 .toggle-button-disabled { background-color: #ff0000; border: 1px solid #a24e4e; }
 .toggle-button-disabled button { left: 0px; top: 0; margin: 0; border: none; width: 24px; height: 24px; box-shadow: 0 0 4px rgba(0,0,0,0.1); }
 
+#errorContainer { padding-top: 10px; color: red; font-weight: bold; display: none; }
+
  </style>
 </head>
 <body>
@@ -168,6 +205,12 @@ h3 { height: 30px; color: #7E8F7C; }
 <div id="page-wrap">
 
 <div class="container">
+
+  <div id="errorContainer">
+    <img src="imgerror.png" border="0" width="32" height="32" />
+	<div id="errorMessage"></div>
+  </div>
+
   <h3>Front Garden<br>(trees)</h3> <div id="txttreesRunning"></div> <div class="toggle-button" id="btnValveTrees"><button></button></div>
   <h3>Front Garden<br>(large area)</h3> <div id="txtmainRunning"></div> <div class="toggle-button" id="btnValveMain"><button></button></div>
   <h3>reserved<br>(not used)</h3> <div id="txtreservedRunning"></div> <div class="toggle-button" id="btnValveReserved"><button></button></div>
