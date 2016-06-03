@@ -12,7 +12,7 @@ var cfg = { wsaddr: "ws://localhost:23234" };
 var valveMap = [
 	{ name: "main", state: false, lastAccess: 0 },
 	{ name: "trees", state: false, lastAccess: 0 },
-	{ name: "reserved", state: false, laseAccess: 0 }
+	{ name: "reserved", state: false, lastAccess: 0 }
 ];
 
 // ################################################################
@@ -22,9 +22,21 @@ var btnValveTrees = null;
 var btnValveReserved = null;
  
 function initStates() {
-	btnValveMain.toggleClass('toggle-button-disabled');
-	btnValveTrees.toggleClass('toggle-button-disabled');
-	btnValveReserved.toggleClass('toggle-button-disabled');
+	btnValveMain = $('#btnValveMain');
+	btnValveTrees = $('#btnValveTrees');
+	btnValveReserved = $('#btnValveReserved');
+
+	if(btnValveMain !== null && btnValveMain !== 'undefined')
+		btnValveMain.addClass('toggle-button-disabled');
+	if(btnValveTrees !== null && btnValveTrees !== 'undefined')
+		btnValveTrees.addClass('toggle-button-disabled');
+	if(btnValveReserved !== null && btnValveReserved !== 'undefined')
+		btnValveReserved.addClass('toggle-button-disabled');
+
+	for(var i=0; i < valveMap.length; ++i) {
+		valveMap[i].state = false;
+		valveMap[i].lastAccess = 0;
+	}
 }
 
 function twoDigits(n) {
@@ -90,6 +102,8 @@ function handleState(valveData)
 
 $(document).ready(function() {
 
+	initStates();
+
 	setInterval(function() { 
 		// txttreesRunning
 		// txtainRunning
@@ -112,10 +126,6 @@ $(document).ready(function() {
 	}, 500);
 
 	var websocket = new WebSocket(cfg.wsaddr);
-
-	btnValveMain = $('#btnValveMain');
-	btnValveTrees = $('#btnValveTrees');
-	btnValveReserved = $('#btnValveReserved');
 
 	btnValveMain.click(function(){
 		websocket.send(JSON.stringify({valve: "main"}));
