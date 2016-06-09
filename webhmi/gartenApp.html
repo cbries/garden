@@ -15,16 +15,39 @@ var valveMap = [
 	{ name: "reserved", state: false, lastAccess: 0 }
 ];
 
+var weatherData = {
+	"temperature" : null,
+	"humidity" : null
+};
+
 // ################################################################
 
 var btnValveMain = null;
 var btnValveTrees = null;
 var btnValveReserved = null;
- 
+
+var imgHumanity = null;
+var dataHumanity = null;
+
+var imgWeather = null;
+var dataWeather = null;
+
+var imgPressure = null
+var dataPressure = null;
+
 function initStates() {
 	btnValveMain = $('#btnValveMain');
 	btnValveTrees = $('#btnValveTrees');
 	btnValveReserved = $('#btnValveReserved');
+
+	imgHumanity = $('#imghumanity');
+	dataHumanity = $('#datathumanity');
+	
+	imgWeather = $('#imgtemperature');
+	dataWeather = $('#datatemperature');
+
+	imgPressure = $('#imgpressure');
+	dataPressure = $('#datapressure');
 
 	if(btnValveMain !== null && btnValveMain !== 'undefined')
 		btnValveMain.addClass('toggle-button-disabled');
@@ -81,8 +104,31 @@ function refreshStates() {
 		
 }
 
-function handleState(valveData)
-{
+function refreshWeatherData() {
+	var v = parseFloat(weatherData["temperature"]);	
+	if(v <= 0)
+		imgWeather.attr("src", "imgtemperatureblue.png");
+	else if(v > 0 && v <= 10)
+		imgWeather.attr("src", "imgtemperatureyellow0.png");
+	else if(v > 10 && v <= 15)
+		imgWeather.attr("src", "imgtemperatureyellow1.png");
+	else if(v > 15 && v <= 25)
+		imgWeather.attr("src", "imgtemperatureyellow2.png");
+	else if(v > 25)
+		imgWeather.attr("src", "imgtemperaturered.png");
+	else
+		imgWeather.attr("src", "imgtemperatureblue.png");
+
+	dataWeather.html(v + " &deg;C");
+
+	var v = parseFloat(weatherData["humidity"]);
+	dataHumanity.html(v + " %");
+
+	var v = parseFloat(weatherData["pressure"]);
+	dataPressure.html(v + " hPa");
+};
+
+function handleState(valveData) {
 	for(var i=0; i < valveData.valves.length; ++i)
 	{
 		var o = valveData.valves[i];
@@ -100,15 +146,30 @@ function handleState(valveData)
 	refreshStates();
 }
 
+function handleData(data) {
+	if(data["temperature"] !== 'undefined' && data["temperature"] !== null)
+		weatherData["temperature"] = data["temperature"];
+	else 
+		weatherData["temperature"] = 0.0;
+
+	if(data["humidity"] !== 'undefined' && data["humidity"] !== null)
+		weatherData["humidity"] = data["humidity"];
+	else
+		weatherData["humidity"] = 0.0;
+
+	if(data["pressure"] !== 'undefined' && data["pressure"] !== null)
+		weatherData["pressure"] = data["pressure"];
+	else
+		weatherData["pressure"] = 0.0;
+
+	refreshWeatherData();
+}
+
 $(document).ready(function() {
 
 	initStates();
 
 	setInterval(function() { 
-		// txttreesRunning
-		// txtainRunning
-		// txtreservedRunning
-
 		valveMap.forEach(function(entry) {
 			var n = "txt" + entry.name + "Running";
 			var no = $('#' + n);
@@ -148,6 +209,8 @@ $(document).ready(function() {
 			var json = JSON.parse(str.data);
 			if(json.type == 'state')
 				handleState(json.data);
+			if(json.type == 'data')
+				handleData(json.data);
 			else
 				; // ignore
 		} catch(ex) {
@@ -208,6 +271,10 @@ h3 { height: 30px; color: #7E8F7C; }
 
 #errorContainer { padding-top: 10px; color: red; font-weight: bold; display: none; }
 
+#topline { width: 100%; padding-top: 15px; padding-bottom: 15px; }
+#topline_temperature { padding-left: 10px; padding-right: 10px; height: 32px; line-height: 32px; display: inline-block; }
+#topline img { vertical-align: middle; padding-right: 8px; }
+#topline span { font-weight: bold; display: inline-block; vertical-align: middle; }
  </style>
 </head>
 <body>
@@ -215,6 +282,23 @@ h3 { height: 30px; color: #7E8F7C; }
 <div id="page-wrap">
 
 <div class="container">
+
+  <div id="topline">
+   <div id="topline_temperature">
+    <img id="imgpressure" src="imgpressure.png" border="0" width="32" height="32" align="left">
+    <span id="datapressure">0.0 hPa</span>
+   </div>
+
+   <div id="topline_temperature">
+    <img id="imghumanity" src="imghumanity.png" border="0" width="32" height="32" align="left">
+    <span id="datathumanity">0.0 %</span>
+   </div>
+
+   <div id="topline_temperature">
+    <img id="imgtemperature" src="imgtemperatureyellow0.png" border="0" width="32" height="32" align="left">
+    <span id="datatemperature">0.0 &deg;C</span>
+   </div>
+  </div>
 
   <div id="errorContainer">
     <img src="imgerror.png" border="0" width="32" height="32" />

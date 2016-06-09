@@ -43,6 +43,11 @@ var valveStates = { "valves" : [
 	{"name": "reserved", "state": false, "lastAccess": 0, "gpiopin" : valveReserved},
 ]};
 
+function sendWeatherData(c) {
+	var json = JSON.parse(require('fs').readFileSync('./gartenServer.data.json', 'utf8'));
+	sendData(c, "data", json);
+}
+
 function executeCommand(cmdcall) {
 	var child = exec(cmdcall, execLog);
 	child.on('close', function(code) {
@@ -161,6 +166,13 @@ function updateValves(c) {
 
 function handlingMessage(c, json) {	
 	var valveName = json.valve;
+
+	if(valveName === 'update')
+	{
+		sendWeatherData(c);
+		return;
+	}
+
 	var valveEntry = isValidValve(valveName);
 	
 	if(valveEntry == null)
@@ -194,7 +206,8 @@ wsServer.on('request', function(request) {
     connections.push(c);
 	
 	sendData(c, "state", valveStates);
-	
+	sendWeatherData(c);
+
 	c.on('message', function(msg) {
 		try 
 		{
