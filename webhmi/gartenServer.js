@@ -13,8 +13,10 @@
 var valveMain = 4;
 var valveTrees = 5; 
 var valveReserved = 6; 
+var lightsFront = 28;
+var lightsBack = 29;
 var wsListenPort = 23234;
-var cmd_gpio = "./gpio";
+var cmd_gpio = "gpio";
 
 // ###################################################
 
@@ -31,6 +33,7 @@ console.log = function(d) { //
   log_file.write(util.format(d) + '\n');
   log_stdout.write(util.format(d) + '\n');
 };
+
 console.logfile = function(d) { //
   log_file.write(util.format(d) + '\n');
 }
@@ -38,9 +41,14 @@ console.logfile = function(d) { //
 var connections = [];
 
 var valveStates = { "valves" : [
-	{"name": "main", "state": false, "lastAccess": 0, "gpiopin" : valveMain},
-	{"name": "trees", "state": false, "lastAccess": 0, "gpiopin" : valveTrees},
-	{"name": "reserved", "state": false, "lastAccess": 0, "gpiopin" : valveReserved},
+	{"name": "main", "state": false, "lastAccess": 0, "gpiopin" : valveMain, "interval": 0},
+	{"name": "trees", "state": false, "lastAccess": 0, "gpiopin" : valveTrees, "interval": 0},
+	{"name": "reserved", "state": false, "lastAccess": 0, "gpiopin" : valveReserved, "interval": 0},
+]};
+
+var switchStates = { "switches" : [
+	{"name": "front", "state": false, "lastAccess": 0, "gpiopin": lightsFront, "interval": 0},
+	{"name": "back", "state": false, "lastAccess": 0, "gpiopin": lightsBack, "interval": 0}
 ]};
 
 function sendWeatherData(c) {
@@ -59,15 +67,27 @@ function executeCommand(cmdcall) {
 
 function resetValves() {
 	valveStates["valves"].forEach(function(entry) {
-		executeCommand(cmd_gpio + " mode " + entry.gpiopin + " out");
-		executeCommand(cmd_gpio + " write " + entry.gpiopin + " 0");
+		if(entry.gpiopin >= 0) {
+			executeCommand(cmd_gpio + " mode " + entry.gpiopin + " out");
+			executeCommand(cmd_gpio + " write " + entry.gpiopin + " 0");
+		}
+	});
+}
+
+function resetSwitches() {
+	switchStates["switches"].forEach(function(entry) {
+		if(entry.gpiopin >= 0) {
+			executeCommand(cmd_gpio + " mode " + entry.gpiopin + " out");
+			executeCommand(cmd_gpio + " write " + entry.gpiopin + " 0");
+		}
 	});
 }
 
 resetValves();
+resetSwitches();
 
-process.on('SIGTERM', function() { console.log("SIGTERM : shutting down softly..."); resetValves(); process.exit(); });
-process.on('SIGINT', function() { console.log("SIGTERM : shutting down softly..."); resetValves(); process.exit(); });
+process.on('SIGTERM', function() { console.log("SIGTERM : shutting down softly..."); resetValves(); resetSwitches(); process.exit(); });
+process.on('SIGINT', function() { console.log("SIGTERM : shutting down softly..."); resetValves(); resetSwitches(); process.exit(); });
 
 var server = http.createServer(function(request, response) {
     console.log((new Date()) + ' Received request for ' + request.url);
@@ -93,6 +113,16 @@ function isValidValve(name) {
 	return o;
 }
 
+function isValidSwitch(name) {
+	var o = null;
+        switchStates["switches"].forEach(function(entry){
+                if(entry["name"] === name) {
+                        o = entry;
+                }
+        });
+        return o;
+}
+
 server.listen(wsListenPort, function() {
     console.log((new Date()) + ' Server is listening on port '+ wsListenPort);
 });
@@ -112,17 +142,26 @@ function originIsAllowed(origin) {
   return true;
 }
 
-function setGpio(c, valve) {
-	var gpiopin = valve.gpiopin;
-	var state = valve.state;
-	var name = valve.name;
-		
-	console.log(name + "::GPIO: " + gpiopin + " -> " + state + " (" + valve.lastAccess + ")");
+function setGpio(c, data) {
+	var gpiopin = data.gpiopin;
+	var state = data.state;
+	var name = data.name;
+	var lastAccess = data.lastAccess;
+	var interval = data.interval;
 	
-	if(state === true)
-		executeCommand(cmd_gpio + " write " + gpiopin + " 1");
+	if(gpiopin > -1)
+	{	
+		console.log(name + "::GPIO: " + gpiopin + " -> " + state + " (" + lastAccess + ")");
+	
+		if(state === true)
+			executeCommand(cmd_gpio + " write " + gpiopin + " 1");
+		else
+			executeCommand(cmd_gpio + " write " + gpiopin + " 0");
+	}
 	else
-		executeCommand(cmd_gpio + " write " + gpiopin + " 0");
+	{
+		console.log(name + "::GPIO: [not valid:=" + gpiopin + "] -> call is NOT performed");
+	}
 }
 
 function sendError(c, msg) {
@@ -152,44 +191,94 @@ function sendData(c, strType, jsonData) {
 		"type" : strType,
 		"data" : jsonData
 	});
-	
+	c.send(data);
+}
+
+function sendUpdate(c) {
+	var data = JSON.stringify({ "type": "update", "data": {s0 : valveStates, s1 : switchStates }});
 	c.send(data);
 }
 
 function updateValves(c) {
-	
 	var v = valveStates["valves"];
-	
 	for(var i=0; i < v.length; ++i)
 		setGpio(c, v[i]);
 }
 
+function updateSwitches(c) {
+        var s = switchStates["switches"];
+        for(var i=0; i < s.length; ++i)
+                setGpio(c, s[i]);
+}
+
 function handlingMessage(c, json) {	
-	var valveName = json.valve;
 
-	if(valveName === 'update')
+	if(json.cmd != null && json.cmd != 'undefined')
 	{
-		sendWeatherData(c);
-		return;
+		if(json.cmd == "update")
+		{
+			sendUpdate(c);
+			return;
+		}
 	}
 
-	var valveEntry = isValidValve(valveName);
-	
-	if(valveEntry == null)
+	if(json.valve != null && json.valve != 'undefined')
 	{
-		sendError(c, "Valve name is not valid: " + valveName);
+		var valveName = json.valve;
+		if(valveName === 'update')
+        	{
+        	        sendWeatherData(c);
+        	        return;
+        	}
+
+		var interval = json.interval;
+		var valveEntry = isValidValve(valveName);	
+		if(valveEntry == null)
+		{
+			sendError(c, "Valve name is not valid: " + valveName);
+		}
+		else
+		{
+			var newState = !valveEntry.state;
+			var v = valveStates["valves"];
+			v.forEach(function(entry){entry.state = false;});
+			valveEntry.state = newState;
+			if(newState == true)
+				valveEntry.interval = interval;
+			else
+				valveEntry.interval = 0;
+			var d = new Date();
+			valveEntry.lastAccess = d.getTime();
+			updateValves(c);
+			sendData(c, "state", valveStates);
+		}
 	}
-	else
+
+	if(json.switches != null && json.switches != 'undefined')
 	{
-		var newState = !valveEntry.state;
-		var v = valveStates["valves"];
-		v.forEach(function(entry){entry.state = false;});
-		valveEntry.state = newState;
-		var d = new Date();
-		valveEntry.lastAccess = d.getTime();
-		updateValves(c);
-		sendData(c, "state", valveStates);
-	}	
+		var switchName = json.switches;
+		var interval = json.interval;
+		var switchEntry = isValidSwitch(switchName);
+		if(switchEntry == null)
+		{
+			sendError(c, "Switch name is not valid: " + switchName);
+		}
+		else
+		{
+			var newSwitchState = !switchEntry.state;
+			var v = switchStates["switches"];
+			//v.forEach(function(entry){entry.state = false;});
+			switchEntry.state = newSwitchState;
+			if(newSwitchState == true)
+				switchEntry.interval = interval;
+			else
+				switchEntry.interval = 0;
+			var d = new Date();
+			switchEntry.lastAccess = d.getTime();
+			updateSwitches(c);
+			sendData(c, "switchStates", switchStates); 
+		}
+	}
 }
 
 wsServer.on('request', function(request) {
@@ -206,14 +295,13 @@ wsServer.on('request', function(request) {
     connections.push(c);
 	
 	sendData(c, "state", valveStates);
+	sendData(c, "switchStates", switchStates);
 	sendWeatherData(c);
 
 	c.on('message', function(msg) {
 		try 
 		{
-			console.log("Received: " + msg.utf8Data);
 			var json = JSON.parse(msg.utf8Data);
-			
 			handlingMessage(c, json);
 		} 
 		catch (e) 
