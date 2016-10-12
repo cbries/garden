@@ -2,6 +2,9 @@
 <html>
 <head>
  <title>GartenApp</title>
+ <link rel="manifest" href="manifest.json">
+ <meta name="mobile-web-app-capable" content="yes">
+ <link rel="icon" sizes="48x48" href="imgs/touch/homescreen48.png">
  <meta name="viewport" content="width=device-width, initial-scale=1">
  <script type="text/javascript" src="jquery.min.js"></script>
  <script type="text/javascript">
@@ -454,7 +457,8 @@ $(document).ready(function() {
  
 body { 
 	background-image: url("bgs/bg03.jpg");
-	background-size: cover;
+	/*background-size: cover;*/
+	background-size: auto auto;
 	text-align: center; 
 /*	background-color: #008b8b; */ 
 	color: #3B3738; 
