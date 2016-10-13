@@ -1,8 +1,40 @@
 
 var cfg = require('./gartenServer.cfg.js').cfg;
 var wsClient = require('websocket').client;
+var dateFormat = require('dateformat');
+
+var Twit = require('twit');
+var T = new Twit({
+    consumer_key:         process.env.TWITTER_CONSUMER_KEY
+  , consumer_secret:      process.env.TWITTER_CONSUMER_SECRET
+  , access_token:         process.env.TWITTER_ACCESS_TOKEN_KEY
+  , access_token_secret:  process.env.TWITTER_ACCESS_TOKEN_SECRET
+});
 
 module.exports = {
+  tweetSwitchedOff: function(info) {
+	T.post('statuses/update', { 
+		status: info.type + ' \'' + info.targetName + '\' switched off!' }, function(err, data, response) {
+			if(err) {
+				console.log("There was a problem tweeting the message.", err);
+			}
+	});
+  },
+
+  tweetSwitchedOn: function(info) {
+	//var ti = parseInt(info.interval);
+    //var hours = parseInt(ti / 3600);
+    //var minutes = parseInt(ti - (hours*3600) / 60);
+    //var seconds = parseInt(ti % 60);
+    //var ttt = hours + ":" + minutes;
+	T.post('statuses/update', {
+        status: info.type + ' \'' + info.targetName + '\' switched on!' }, function(err, data, response) {
+            if(err) {
+                console.log("There was a problem tweeting the message.", err);
+            }
+    });
+  },
+
   checkStates: function (callback) {
 	var w = new wsClient();
     w.on('connect', function(connection) {

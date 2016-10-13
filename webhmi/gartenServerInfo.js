@@ -51,9 +51,9 @@ var checkState = function(obj, mode, c) {
 		var name = data.name;
 		var state = data.state;
 		var lastAccess = parseInt(parseInt(data.lastAccess) / 1000);
-		var lastAccessPretty = dateFormat(data.lastAccess, "dd, mm dS, h:MM:ss TT");
+		var lastAccessPretty = dateFormat(data.lastAccess, "dS/mm, h:MM:ss TT");
 		var interval = parseInt(data.interval * 60);
-		var intervalDeadlinePretty = dateFormat((lastAccess + interval) * 1000, "dd, mm dS, h:MM:ss TT");
+		var intervalDeadlinePretty = dateFormat((lastAccess + interval) * 1000, "dS/mm, h:MM:ss TT");
 
 		var d = new Date();
 		var currentTime = d.getTime() / 1000;

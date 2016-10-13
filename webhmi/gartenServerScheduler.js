@@ -10,6 +10,8 @@ var helper = require('./gartenServer.helper.js');
 var cfg = require('./gartenServer.cfg.js').cfg;
 var twoDigits = helper.twoDigits;
 var checkStates = helper.checkStates;
+var tweetOn = helper.tweetSwitchedOn;
+var tweetOff = helper.tweetSwitchedOff;
 
 var schedule = [
 	// mode     := "on" | "off"
@@ -28,6 +30,7 @@ var WebSocketServer = require('websocket').server;
 var clc = require('cli-color');
 var fs = require('fs');
 var util = require('util');
+var dateFormat = require('dateformat');
 var log_file = fs.createWriteStream(__dirname + '/debug-checker.log', {flags : 'w'});
 var log_stdout = process.stdout;
 
@@ -130,7 +133,8 @@ checkStates(function(obj, mode, c) {
 				sched.when = sched.when.replace("$sunset$", sunset0);
 				sched.when = eval(sched.when);
 
-				var v = (new Date(sched.when * 1000)).toLocaleString();
+				var v = new Date(sched.when * 1000);
+				    v = dateFormat(v, "dS/mm, h:MM:ss TT");
 				var localTime = getLocalNowTimestamp();
 				var scheduleTime = sched.when;
 
@@ -148,6 +152,7 @@ checkStates(function(obj, mode, c) {
 					{
 						res = true;
 						interval = sched.interval;
+						tweetOn({type: mode == 0 ? 'Valve' : 'Light', targetName: sched.target, interval: sched.interval});
 					}
 				}
 				else if(sched.mode == "off" && (state == true || state == "true"))
@@ -156,6 +161,7 @@ checkStates(function(obj, mode, c) {
 					{
 						res = true;
 						interval = 0;
+						tweetOff({type: mode == 0 ? 'Valve' : 'Light', targetName: sched.target});
 					}
 				}
 
@@ -164,7 +170,7 @@ checkStates(function(obj, mode, c) {
 					var mm = clc.xterm(202);
 					if(mode == 0)
 					{
-						console.log(mm(" > Toggle vavle: " + sched.target));
+						console.log(mm(" > Toggle valve: " + sched.target));
 						c.send(JSON.stringify({valve: sched.target, interval: interval}));
 					}
 					else if(mode == 1)
