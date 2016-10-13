@@ -6,16 +6,10 @@
 // License: MIT
 //
 
-// ###################################################
-//  C O N F I G U R A T I O N
-// ###################################################
-
-var cfg = { 
-	wsaddr: "ws://localhost:23234",
-    updateInterval: 5000
-};
-
-// ###################################################
+var cfg = require('./gartenServer.cfg.js').cfg;
+var helper = require('./gartenServer.helper.js');
+var strPad = helper.strPad;
+var checkStates = helper.checkStates;
 
 var WebSocketServer = require('websocket').server;
 var spawn = require('threads').spawn;
@@ -42,36 +36,6 @@ var args = require('optimist')
 	.usage('Usage: $0 -i [seconds]')
 	.demand(['i'])
 	.argv;
-
-cfg.updateInterval = parseInt(args.i) * 1000;
-
-console.log("Interval: " + cfg.updateInterval);
-
-// see http://www.codexpedia.com/javascript/javascript-string-padding-function/
-function strPad(str, width, padding) {
-    if (typeof str === 'string' || typeof str === 'number') {
-        str = str + '';
-    } else {
-        throw 'str has to be type string or number.';
-    }
- 
-    if (typeof width !== 'number') {
-        throw 'width has to be a number.'; 
-    }
- 
-    if (typeof padding !== 'string') {
-        throw 'padding has to be a string.';
-    }
- 
-    if (padding.length === 0) {
-        throw 'padding cannot be an empty string.';
-    }
- 
-    while (str.length < width) {
-        str = padding + str;
-    }
-    return str;
-}
 
 var checkState = function(obj, mode, c) { 
 	// mode -> 0:=valve, 1:=switch
@@ -116,51 +80,6 @@ var checkState = function(obj, mode, c) {
   }
 };
 
-var checkStates = function() {
-
-	var w = new wsClient();
-		
-	w.on('connect', function(connection) {
-		connection.send(JSON.stringify({"cmd": "update"}));
-		connection.on('message', function(json) {
-			try {
-				if(json.type === 'utf8')
-				{
-				  json = JSON.parse(json.utf8Data);
-				  if(json.type != null && json.type !== 'undefined')
-				  {
-				    if(json.type == 'update')
-				    {
-						console.log(" ----------------------------------------------------------------------------------------- ");
-						if(json.data.s0 != null)
-					   		checkState(json.data.s0, 0, connection);
-                    	if(json.data.s1 != null)
-                            checkState(json.data.s1, 1, connection);
-				   
-					connection.close();
-				    	
-					w = null;
-				    }
-				  }				
-				}
-			} catch(ex) {
-				// ignore
-			}
-		});
-
-		connection.on('close', function(evt) {
-			checkInProgress = false;
-		});
-	})
-
-	w.on('connectFailed', function(evt) {
-		console.log("WebSocket failed: " + evt.toString());
-	});
-
-	w.connect(cfg.wsaddr);
-};
-
-checkStates();
-
-setInterval(checkStates, cfg.updateInterval);
+checkStates(checkState);
+setInterval(function() {checkStates(checkState);}, cfg.updateIntervalInfo);
 

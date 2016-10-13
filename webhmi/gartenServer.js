@@ -6,20 +6,14 @@
 // License: MIT
 //
 
-// ###################################################
-//  C O N F I G U R A T I O N
-// ###################################################
-
-var valveMain = 4;
-var valveTrees = 5; 
-var valveReserved = 6; 
-var lightsFront = 28;
-var lightsBack = 29;
-var wsListenPort = 23234;
-var cmd_gpio = "gpio";
-
-// ###################################################
-
+var cfg = require('./gartenServer.cfg.js').cfg;
+var valveMain = cfg.valveMain;
+var valveTrees = cfg.valveTrees;
+var valveReserved = cfg.valveReserved;
+var lightsFront = cfg.lightsFront;
+var lightsBack = cfg.lightsBack;
+var wsListenPort = cfg.wsListenPort;
+var cmd_gpio = cfg.cmd_gpio;
 var WebSocketServer = require('websocket').server;
 var http = require('http');
 var exec = require('child_process').exec;

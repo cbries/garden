@@ -6,19 +6,11 @@
 // License: MIT
 //
 
-// ###################################################
-//  C O N F I G U R A T I O N
-// ###################################################
-
-var cmd_gpio = "gpio";
-
-var cfg = { wsaddr: "ws://localhost:23234" };
-
-// ###################################################
+var checkStates = require('./gartenServer.helper.js').checkStates;
+var cfg = require('./gartenServer.cfg.js').cfg;
 
 var WebSocketServer = require('websocket').server;
 var spawn = require('threads').spawn;
-
 var fs = require('fs');
 var util = require('util');
 var log_file = fs.createWriteStream(__dirname + '/debug-checker.log', {flags : 'w'});
@@ -46,9 +38,6 @@ var checkState = function(obj, mode, c) {
 		data = obj.valves;
 	else if(mode == 1)
 		data = obj.switches;
-
-	//console.log("Valves: " + data + ", " + data.length);
-	//console.log("Switches: " + data + ", " + data.length);
 
 	var h = function(data) {
 	  var name = data.name;
@@ -91,14 +80,13 @@ var checkState = function(obj, mode, c) {
 	};
 
 	if(data != null)
+	{
+		for(i=0; i < data.length; ++i)
         {
-                for(i=0; i < data.length; ++i)
-                {
-                        var o = data[i];
-			console.log("Check: " + o.name);
-                        h(o);
-                }
-        }
+			var o = data[i];
+            h(o);
+		}
+    }
   }
   catch(ex)
   {
@@ -106,48 +94,5 @@ var checkState = function(obj, mode, c) {
   }
 };
 
-var checkStates = function() {
-
-	var w = new wsClient();
-		
-	w.on('connect', function(connection) {
-		connection.send(JSON.stringify({"cmd": "update"}));
-		connection.on('message', function(json) {
-             	        try {
-				if(json.type === 'utf8')
-				{
-				  json = JSON.parse(json.utf8Data);
-				  if(json.type != null && json.type !== 'undefined')
-				  {
-				    if(json.type == 'update')
-				    {
-					if(json.data.s0 != null)
-                                		checkState(json.data.s0, 0, connection);
-                               		if(json.data.s1 != null)
-                                	        checkState(json.data.s1, 1, connection);
-				   
-					connection.close();
-				    	
-					w = null;
-				    }
-				  }				
-				}
-               	        } catch(ex) {
-               	                // ignore
-               	        }
-               	});
-
-		connection.on('close', function(evt) {
-			checkInProgress = false;
-		});
-	})
-
-	w.on('connectFailed', function(evt) {
-		console.log("WebSocket failed: " + evt.toString());
-	});
-
-	w.connect(cfg.wsaddr);
-};
-
-setInterval(checkStates, 5000);
+setInterval(function() {checkStates(checkState);}, 5000);
 
