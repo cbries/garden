@@ -6,7 +6,10 @@
 // License: MIT
 //
 
-var checkStates = require('./gartenServer.helper.js').checkStates;
+var helper = require('./gartenServer.helper.js');
+var checkStates = helper.checkStates;
+var tweetOn = helper.tweetSwitchedOn;
+var tweetOff = helper.tweetSwitchedOff;
 var cfg = require('./gartenServer.cfg.js').cfg;
 
 var WebSocketServer = require('websocket').server;
@@ -63,18 +66,30 @@ var checkState = function(obj, mode, c) {
 	  if(state == true && currentTime >= (lastAccess + interval))
 	  {
 		if(mode == 0)
+		{
 			c.send(JSON.stringify({valve: name, interval: 0}));
+			tweetOff({type: mode == 0 ? 'Valve' : 'Light', targetName: name});
+		}
 		else if(mode == 1)
+		{
 			c.send(JSON.stringify({switches: name, interval: 0}));
+			tweetOff({type: mode == 0 ? 'Valve' : 'Light', targetName: name});
+		}
 	  }
 	  else
 	  {
 		if(state == true && interval <= 0)
 		{
 			if(mode == 0)
+			{
 			    c.send(JSON.stringify({valve: name, interval: 0}));
-            else if(mode == 1)
+				tweetOff({type: mode == 0 ? 'Valve' : 'Light', targetName: name});
+			}
+			else if(mode == 1)
+			{
 				c.send(JSON.stringify({switches: name, interval: 0}));
+				tweetOff({type: mode == 0 ? 'Valve' : 'Light', targetName: name});
+			}
 		}
 	  }
 	};
