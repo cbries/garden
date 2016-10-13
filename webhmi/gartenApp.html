@@ -2,18 +2,26 @@
 <html>
 <head>
  <title>GartenApp</title>
+ <link rel="manifest" href="manifest.json">
+ <meta name="mobile-web-app-capable" content="yes">
+ <link rel="icon" sizes="48x48" href="imgs/touch/homescreen48.png">
  <meta name="viewport" content="width=device-width, initial-scale=1">
  <script type="text/javascript" src="jquery.min.js"></script>
  <script type="text/javascript">
  
-var cfg = { wsaddr: "ws://localhost:23234" };
-//var cfg = { wsaddr: "ws://192.168.178.33:23234" };
+//var cfg = { wsaddr: "ws://localhost:23234" };
+var cfg = { wsaddr: "ws://192.168.178.33:23234" };
 
 var valveMap = [
-	{ name: "main", state: false, lastAccess: 0 },
-	{ name: "trees", state: false, lastAccess: 0 },
-	{ name: "reserved", state: false, lastAccess: 0 }
+	{ name: "main", state: false, lastAccess: 0, interval: 0 },
+	{ name: "trees", state: false, lastAccess: 0, interval: 0 },
+	{ name: "reserved", state: false, lastAccess: 0, interval: 0 }
 ];
+
+var switchMap = [
+	{ name: "front", state: false, lastAccess: 0, interval: 0 },
+	{ name: "back", state: false, lastAccess: 0, interval: 0 }
+]; 
 
 var weatherData = {
 	"temperature" : null,
@@ -21,6 +29,38 @@ var weatherData = {
 };
 
 // ################################################################
+
+function updateValve(data) {
+	var name = data.name;
+	var state = data.state;
+	var lastAccess = data.lastAccess;
+	var interval = data.interval;
+
+	valveMap.forEach(function(entry) { 
+		if(entry.name == name)
+		{
+			entry.state = state;
+			entry.lastAccess = lastAccess;
+			entry.interval = interval;
+		}
+	});
+}
+
+function updateSwitch(data) {
+	var name = data.name;
+        var state = data.state;
+        var lastAccess = data.lastAccess;
+        var interval = data.interval;
+
+	switchMap.forEach(function(entry) { 
+		if(entry.name == name)
+                {
+                        entry.state = state;
+                        entry.lastAccess = lastAccess;
+                        entry.interval = interval;
+                }
+	});
+}
 
 var btnValveMain = null;
 var btnValveTrees = null;
@@ -35,7 +75,28 @@ var dataWeather = null;
 var imgPressure = null
 var dataPressure = null;
 
+var btnOpenWeather = null;
+var btnOpenSwitches = null;
+
+var tabWeather = null;
+var tabSwitches = null;
+
+var btnLightsFront = null;
+var btnLightsBack = null;
+
+var cmbValveTimer = null;
+var cmbSwitchTimer = null;
+
 function initStates() {
+	btnOpenWeather = $('#BtnOpenWeather');
+	btnOpenSwitches = $('#BtnOpenSwitches');
+
+	tabWeather = $('#TabWeather');
+	tabSwitches = $('#TabSwitches');
+
+	btnLightsFront = $('#btnLightsFront');
+	btnLightsBack = $('#btnLightsBack');
+
 	btnValveMain = $('#btnValveMain');
 	btnValveTrees = $('#btnValveTrees');
 	btnValveReserved = $('#btnValveReserved');
@@ -49,17 +110,35 @@ function initStates() {
 	imgPressure = $('#imgpressure');
 	dataPressure = $('#datapressure');
 
+	cmbValveTimer = $('#cmbValveTimer');
+	cmbSwitchTimer = $('#cmbSwitchTimer');
+
 	if(btnValveMain !== null && btnValveMain !== 'undefined')
 		btnValveMain.addClass('toggle-button-disabled');
 	if(btnValveTrees !== null && btnValveTrees !== 'undefined')
 		btnValveTrees.addClass('toggle-button-disabled');
 	if(btnValveReserved !== null && btnValveReserved !== 'undefined')
 		btnValveReserved.addClass('toggle-button-disabled');
+	
+	if(btnLightsFront !== null && btnLightsFront !== 'undefined')
+                btnLightsFront.addClass('toggle-button-disabled');
+	if(btnLightsBack !== null && btnLightsBack !== 'undefined')
+                btnLightsBack.addClass('toggle-button-disabled');
 
 	for(var i=0; i < valveMap.length; ++i) {
 		valveMap[i].state = false;
 		valveMap[i].lastAccess = 0;
+		valveMap[i].interval = 0;
 	}
+
+	for(var i=0; i < switchMap.length; ++i) {
+		switchMap[i].state = false;
+		switchMap[i].lastAccess = 0;
+		switchMap[i].interval = 0;
+	}
+
+	tabWeather.show();
+	tabSwitches.hide();
 }
 
 function twoDigits(n) {
@@ -68,7 +147,7 @@ function twoDigits(n) {
   return n;
 }
 
-function refreshStates() {
+function refreshUi() {
 	if(valveMap[0].state == true)
 	{
 		btnValveMain.addClass('toggle-button-selected');
@@ -101,7 +180,28 @@ function refreshStates() {
 		btnValveReserved.addClass('toggle-button-disabled');
 		btnValveReserved.removeClass('toggle-button-selected');
 	}
-		
+
+	if(switchMap[0].state == true)
+	{
+		btnLightsFront.addClass('toggle-button-selected');
+		btnLightsFront.removeClass('toggle-button-disabled');
+	}
+	else
+	{
+		btnLightsFront.addClass('toggle-button-disabled');
+		btnLightsFront.removeClass('toggle-button-selected');
+	}
+
+	if(switchMap[1].state == true)
+	{
+		btnLightsBack.addClass('toggle-button-selected');
+		btnLightsBack.removeClass('toggle-button-disabled');
+	}
+	else
+	{
+		btnLightsBack.addClass('toggle-button-disabled');
+		btnLightsBack.removeClass('toggle-button-selected');
+	}
 }
 
 function refreshWeatherData() {
@@ -128,6 +228,28 @@ function refreshWeatherData() {
 	dataPressure.html(v + " hPa");
 };
 
+function handleUpdate(data)
+{
+	if(data.s0 != null)
+	{
+		for(var i=0; i < data.s0.valves.length; ++i)
+		{
+			var o = data.s0.valves[i];
+			updateValve(o);
+		}
+	}
+	if(data.s1 != null)
+	{
+		for(var i=0; i < data.s1.switches.length; ++i)
+		{
+			var o = data.s1.switches[i];
+			updateSwitch(o);
+		}
+	}
+	
+	refeshUi();
+}
+
 function handleState(valveData) {
 	for(var i=0; i < valveData.valves.length; ++i)
 	{
@@ -139,11 +261,31 @@ function handleState(valveData) {
 			{
 				valveMap[j].state = o.state;
 				valveMap[j].lastAccess = o.lastAccess;
+				valveMap[j].interval = o.interval;
 			}
 		}
 	}
 	
-	refreshStates();
+	refreshUi();
+}
+
+function handleSwitch(switchData) {
+	for(var i=0; i < switchData.switches.length; ++i)
+        {
+                var o = switchData.switches[i];
+
+                for(var j=0; j < switchMap.length; ++j)
+                {
+                        if(switchMap[j].name == o.name)
+                        {
+                                switchMap[j].state = o.state;
+                                switchMap[j].lastAccess = o.lastAccess;
+				switchMap[j].interval = o.interval;
+                        }
+                }
+        }
+
+	refreshUi();
 }
 
 function handleData(data) {
@@ -169,33 +311,87 @@ $(document).ready(function() {
 
 	initStates();
 
-	setInterval(function() { 
-		valveMap.forEach(function(entry) {
+	setInterval(function() {
+
+		var chkFnc = function(entry) {
 			var n = "txt" + entry.name + "Running";
-			var no = $('#' + n);
-			if(entry.state === true)
+                        var no = $('#' + n);
+                        if(entry.state === true)
+                        {
+                                var t = new Date().getTime();
+
+                                console.log("Time: " + t);
+                                console.log("Last Access: " + entry.lastAccess);
+                                console.log("Interval:    " + entry.interval);
+
+                                var left = (new Date().getTime() - (entry.lastAccess + (entry.interval * 60 * 1000))) / 1000;
+
+                                if(left >= 0)
+                                {
+                                        no.html('<b>not running</b>');
+					websocket.send(JSON.stringify({cmd: "update" }));
+                                	refreshUi();
+				}
+                                else
+                                {
+                                        var di = parseInt((new Date().getTime() - entry.lastAccess) / 1000);
+                                        var hours = parseInt(di / 3600);
+                                        var minutes = parseInt((di - hours * 3600) / 60);
+                                        var seconds = parseInt(di % 60);
+
+                                        var dii = parseInt((new Date().getTime() / 1000) + di);
+                                        var leftHours = parseInt(dii / 3600);
+                                        var leftMinutes = parseInt((dii - leftHours * 3600) / 60);
+                                        var leftSeconds = parseInt(dii % 60);
+
+                                        left = Math.abs(left);
+					var leftHours = parseInt(left / 3600);
+                                        var leftMinutes = parseInt((left - leftHours * 3600) / 60);
+                                        var leftSeconds = parseInt((left - leftHours * 60) % 60);
+
+                                        var html = '<b>Runs for ' + (twoDigits(hours) + ":" + twoDigits(minutes) + ":" + twoDigits(seconds));
+                                            html+= ' (Left: ' + (twoDigits(leftHours) + ":" + twoDigits(leftMinutes) + ":" + twoDigits(leftSeconds)) + ')</b>';
+                                        no.html(html);
+                                }
+                        }
+                        else
 			{
-				var di = parseInt((new Date().getTime() - entry.lastAccess) / 1000);
-				var hours = parseInt(di / 3600);
-				var minutes = parseInt((di - hours * 3600) / 60);
-				var seconds = parseInt(di % 60);
-				no.html('<b>Runs for ' + (twoDigits(hours) +":"+twoDigits(minutes)+":"+twoDigits(seconds)) + '</b>');
+                                no.html('<b>not running</b>');
+				refreshUi();
 			}
-			else
-				no.html('<b>not running</b>');	
-		});	
-	}, 500);
+		};
+ 
+		valveMap.forEach(function(entry) { chkFnc(entry); });
+		switchMap.forEach(function(entry) { chkFnc(entry); });	
+	}, 1000);
 
 	var websocket = new WebSocket(cfg.wsaddr);
 
+	btnOpenWeather.click(function(){
+		tabWeather.show();
+		tabSwitches.hide();
+	});
+
+	btnOpenSwitches.click(function(){
+		tabWeather.hide();
+		tabSwitches.show();
+	});
+
 	btnValveMain.click(function(){
-		websocket.send(JSON.stringify({valve: "main"}));
+		websocket.send(JSON.stringify({valve: "main", interval: cmbValveTimer.find('option:selected').val()}));
 	});
 	btnValveTrees.click(function(){
-		websocket.send(JSON.stringify({valve: "trees"}));
+		websocket.send(JSON.stringify({valve: "trees", interval: cmbValveTimer.find('option:selected').val()}));
 	});
 	btnValveReserved.click(function(){
-		websocket.send(JSON.stringify({valve: "reserved"}));
+		websocket.send(JSON.stringify({valve: "reserved", interval: cmbValveTimer.find('option:selected').val()}));
+	});
+
+	btnLightsFront.click(function(){
+		websocket.send(JSON.stringify({switches: "front", interval: cmbSwitchTimer.find('option:selected').val()}));
+	});
+	btnLightsBack.click(function(){
+		websocket.send(JSON.stringify({switches: "back", interval: cmbSwitchTimer.find('option:selected').val()}));
 	});
 
 	var wasConnected = false;
@@ -207,8 +403,12 @@ $(document).ready(function() {
 	websocket.onmessage = function(str) {
 		try {
 			var json = JSON.parse(str.data);
+			if(json.type == 'update')
+				handleUpdate(json.data);
 			if(json.type == 'state')
 				handleState(json.data);
+			if(json.type == 'switchStates')
+				handleSwitch(json.data);
 			if(json.type == 'data')
 				handleData(json.data);
 			else
@@ -216,6 +416,8 @@ $(document).ready(function() {
 		} catch(ex) {
 			// ignore
 		}
+	
+		refreshUi();
 	};
 
 	function closeHmi() {
@@ -248,16 +450,36 @@ $(document).ready(function() {
 	};
 
 }); // document ready
+
 </script>
 
  <style>
  
-body { text-align: center; background-color: #C63D0F; color: #3B3738; }
+body { 
+	background-image: url("bgs/bg03.jpg");
+	/*background-size: cover;*/
+	background-size: auto auto;
+	text-align: center; 
+/*	background-color: #008b8b; */ 
+	color: #3B3738; 
+}
 
-#page-wrap { margin: 0 auto; }
-.container { width: 100%; background-color: #FDF3E7; border-radius: 25px; }
+#page-wrap { 
+	margin: 0 auto; 
+}
+.container {
+	width: 100%; 
+	background-color: rgba(253, 243, 231, 0.9);
+	border-radius: 25px; 
+}
 
-h3 { height: 30px; color: #7E8F7C; }
+.navbar { list-style-type: none; margin: 0; padding: 0; padding-top: 10px; color: #000000; font-weight: bold; }
+.navbar li { display: inline; }
+.navbar a { text-decoration: none; color: #000000; }
+
+.copyright { font-size: 0.8em; color: #ffffff; font-weight: bold; padding: 5px; } 
+
+h3 { color: #7E8F7C; margin: 0; padding: 0; padding-top: 15px;}
 
 .toggle-button { background-color: white; margin: 5px 0; border-radius: 20px; border: 2px solid #D0D0D0; height: 24px; cursor: pointer; width: 50px; position: relative; display: inline-block; user-select: none; -webkit-user-select: none; -ms-user-select: none; -moz-user-select: none; }
 
@@ -271,45 +493,99 @@ h3 { height: 30px; color: #7E8F7C; }
 
 #errorContainer { padding-top: 10px; color: red; font-weight: bold; display: none; }
 
-#topline { width: 100%; padding-top: 15px; padding-bottom: 15px; }
-#topline_temperature { padding-left: 10px; padding-right: 10px; height: 32px; line-height: 32px; display: inline-block; }
+#topline { width: 100%; padding-top: 15px; padding-bottom: 15px; font-size: 0.9em; }
+#topline_temperature { padding-left: 5px; padding-right: 5px; height: 32px; line-height: 32px; display: inline-block; }
 #topline img { vertical-align: middle; padding-right: 8px; }
 #topline span { font-weight: bold; display: inline-block; vertical-align: middle; }
+
+.styled-select { background: url(imgs/arrow.png) no-repeat 96% 0; height: 29px; overflow: hidden; width: 240px; }
+.styled-select select { background: transparent; border: none; font-size: 12px; height: 29px;
+   padding: 5px; /* If you add too much padding here, the options won't show in IE */ width: 268px;
+}
+.rounded { -webkit-border-radius: 20px; -moz-border-radius: 20px; border-radius: 20px; }
+.green { background-color: #94b530; }
+.green select option { color: #000; }
+.green select:not(:checked) { color: #fff; font-weight: bold; }
  </style>
 </head>
 <body>
 
 <div id="page-wrap">
-
 <div class="container">
 
+ <ul class="navbar">
+  <li><a href="#" id="BtnOpenWeather">Weather</a></li>
+  <li style="padding-left: 20px;"><a href="#" id="BtnOpenSwitches">Switches</a></li>
+ </ul>
+
+ <div id="TabWeather" class="tab">
   <div id="topline">
-   <div id="topline_temperature">
-    <img id="imgpressure" src="imgpressure.png" border="0" width="32" height="32" align="left">
-    <span id="datapressure">0.0 hPa</span>
-   </div>
-
-   <div id="topline_temperature">
-    <img id="imghumanity" src="imghumanity.png" border="0" width="32" height="32" align="left">
-    <span id="datathumanity">0.0 %</span>
-   </div>
-
    <div id="topline_temperature">
     <img id="imgtemperature" src="imgtemperatureyellow0.png" border="0" width="32" height="32" align="left">
     <span id="datatemperature">0.0 &deg;C</span>
    </div>
+   <div id="topline_temperature">
+    <img id="imgpressure" src="imgpressure.png" border="0" width="32" height="32" align="left">
+    <span id="datapressure">0.0 hPa</span>
+   </div>
+   <div id="topline_temperature">
+    <img id="imghumanity" src="imghumanity.png" border="0" width="32" height="32" align="left">
+    <span id="datathumanity">0.0 %</span>
+   </div>
   </div>
-
   <div id="errorContainer">
     <img src="imgerror.png" border="0" width="32" height="32" />
 	<div id="errorMessage"></div>
   </div>
+  <h3>Front Garden (trees)</h3> <div id="txttreesRunning"></div> <div class="toggle-button" id="btnValveTrees"><button></button></div>
+  <h3>Front Garden (large area)</h3> <div id="txtmainRunning"></div> <div class="toggle-button" id="btnValveMain"><button></button></div>
+  <h3>reserved (not used)</h3> <div id="txtreservedRunning"></div> <div class="toggle-button" id="btnValveReserved"><button></button></div>
 
-  <h3>Front Garden<br>(trees)</h3> <div id="txttreesRunning"></div> <div class="toggle-button" id="btnValveTrees"><button></button></div>
-  <h3>Front Garden<br>(large area)</h3> <div id="txtmainRunning"></div> <div class="toggle-button" id="btnValveMain"><button></button></div>
-  <h3>reserved<br>(not used)</h3> <div id="txtreservedRunning"></div> <div class="toggle-button" id="btnValveReserved"><button></button></div>
-</div>
+  <div style="padding-top: 25px; padding-bottom: 10px;">
+   <b style="color: #7E8F7C;">Intervall</b><br>
+   <div id="cmbValveTimer" class="styled-select green rounded" style="margin: 0 auto;">
+    <select>
+     <option value="1">1 minute</option>
+     <option value="5">5 minutes</option>
+     <option value="10" selected>10 minutes</option>
+     <option value="15">15 minutes</option>
+     <option value="20">20 minutes</option>
+     <option value="30">30 minutes</option>
+    </select>
+   </div>
+  </div>
+ </div> <!-- TabWeather -->
 
+ <div id="TabSwitches" class="tab">
+  <h3>Front Garden Lights<br>(not activated)</h3> <div id="txtfrontRunning"></div> <div class="toggle-button" id="btnLightsFront"><button></button></div>
+  <h3>Backyard Lights<br>(not activated)</h3> <div id="txtbackRunning"></div> <div class="toggle-button" id="btnLightsBack"><button></button></div> 
+
+  <div style="padding-top: 25px; padding-bottom: 10px;">
+   <b style="color: #7E8F7C;">Intervall</b><br>
+   <div id="cmbSwitchTimer" class="styled-select green rounded" style="margin: 0 auto;">
+    <select>
+     <option value="1">1 minute</option>
+     <option value="5">5 minutes</option>
+     <option value="10">10 minutes</option>
+     <option value="15">15 minutes</option>
+     <option value="20">20 minutes</option>
+     <option value="30">30 minutes</option>
+     <option value="45">45 minutes</option>
+     <option value="60">1 hour</option>
+     <option value="90">1.5 hours</option>
+     <option value="120">2 hours</option>
+     <option value="150">2.5 hours</option>
+     <option value="180" selected>3 hours</option>
+     <option value="210">3.5 hours</option>
+     <option value="240">4 hours</option>
+     <option value="270">4.5 hours</option>
+    </select>
+   </div>
+  </div> <!-- TabSwitches -->
+ </div>
+
+</div> <!-- container -->
+<div class="copyright">Copyright &copy; Dr. Christian Benjamin Ries</div>
 </div> <!-- page-wrap -->
      
 </body>
