@@ -12,15 +12,16 @@ var twoDigits = helper.twoDigits;
 var checkStates = helper.checkStates;
 
 var schedule = [
-	// mode   := "on" | "off"
-	// target := "main" | "trees" | "reserved" | "front" | "back"
-	// when   := ($sunrise$ | $sunset$) + NUM_SECONDS
-	{ "mode" : "off", "target" : "front", "when" : "$sunrise$-(30*60)", "interval" : 3600 * 24 * 7 },
-	{ "mode" : "on", "target" : "front", "when" : "$sunset$+(30*60)", "interval" : 3600 * 24 * 7 },
+	// mode     := "on" | "off"
+	// target   := "main" | "trees" | "reserved" | "front" | "back"
+	// when     := ($sunrise$ | $sunset$) + NUM_SECONDS
+	// interval := NUM_SECONDS
+	  { "mode" : "off", "target" : "front", "when" : "$sunrise$-(30*60)", "interval" : 3600 * 24 * 7 }
+	, { "mode" : "on", "target" : "front", "when" : "$sunset$+(30*60)", "interval" : 3600 * 24 * 7 }
 	
 	// +++ TESTS +++
-	{ "mode" : "on", "target" : "front", "when" : "$sunrise$+(3*60*60)", "interval" : 3600 * 24 * 7 },
-	{ "mode" : "off", "target" : "front", "when" : "$sunrise$+(6*60*60)", "interval" : 3600 * 24 * 7 }
+	//, { "mode" : "on", "target" : "front", "when" : "$sunrise$+(3*60*60)", "interval" : 3600 * 24 * 7 }
+	//, { "mode" : "off", "target" : "front", "when" : "$sunrise$+(6*60*60)", "interval" : 3600 * 24 * 7 }
 ];
 
 var WebSocketServer = require('websocket').server;
