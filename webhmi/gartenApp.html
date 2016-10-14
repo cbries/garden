@@ -311,6 +311,43 @@ $(document).ready(function() {
 
 	initStates();
 
+	var xDown = null;                                                        
+	var yDown = null;
+
+	$(document).bind('touchstart', function(e) {
+		var et = e.originalEvent.touches;
+		xDown = et["0"].clientX;                                      
+		yDown = et["0"].clientY; 
+	});
+	$(document).bind('touchmove', function(e) {
+		if ( ! xDown || ! yDown ) {
+			return;
+		}
+	
+		var xUp = e.originalEvent.touches["0"].clientX;                                    
+		var yUp = e.originalEvent.touches["0"].clientY;
+
+		var xDiff = xDown - xUp;
+		var yDiff = yDown - yUp;
+
+		if ( Math.abs( xDiff ) > Math.abs( yDiff ) ) {/*most significant*/
+			if ( xDiff > 0 ) {
+			    btnOpenSwitches.trigger("click"); 
+			} else {
+			    btnOpenWeather.trigger("click");
+			}                       
+	    } else {
+		    if ( yDiff > 0 ) {
+			    /* up swipe */ 
+			} else { 
+				/* down swipe */
+			}                                                                 
+		}
+		/* reset values */
+		xDown = null;
+		yDown = null;
+	});
+
 	setInterval(function() {
 
 		var chkFnc = function(entry) {
@@ -367,15 +404,31 @@ $(document).ready(function() {
 
 	var websocket = new WebSocket(cfg.wsaddr);
 
+	function highlight(mode) {
+		if(mode == 0) {
+			btnOpenWeather.css({"font-size": "1.1em", "font-weight": "bold", "text-decoration": "underline"});
+			btnOpenSwitches.css({"font-size": "1.0em", "font-weight": "bold", "text-decoration": "none"});
+		} else if(mode == 1) {
+			btnOpenWeather.css({"font-size": "1.0em", "font-weight": "bold", "text-decoration": "none"});
+			btnOpenSwitches.css({"font-size": "1.1em", "font-weight": "bold", "text-decoration": "underline"});
+		} else {
+			// ignore
+		}
+	}
+
 	btnOpenWeather.click(function(){
 		tabWeather.show();
 		tabSwitches.hide();
+		highlight(0);
 	});
 
 	btnOpenSwitches.click(function(){
 		tabWeather.hide();
 		tabSwitches.show();
+		highlight(1);
 	});
+	
+	btnOpenWeather.trigger("click");
 
 	btnValveMain.click(function(){
 		websocket.send(JSON.stringify({valve: "main", interval: cmbValveTimer.find('option:selected').val()}));
@@ -514,8 +567,8 @@ h3 { color: #7E8F7C; margin: 0; padding: 0; padding-top: 15px;}
 <div class="container">
 
  <ul class="navbar">
-  <li><a href="#" id="BtnOpenWeather">Weather</a></li>
-  <li style="padding-left: 20px;"><a href="#" id="BtnOpenSwitches">Switches</a></li>
+  <li><img src="imgs/w.png" style="border:0; width: 16px; height: 16px; vertical-align: middle;"> <a href="#" id="BtnOpenWeather">Weather</a></li>
+  <li style="padding-left: 20px;"><img src="imgs/l.png" style="border:0; width: 16px; height: 16px; vertical-align: middle;"> <a href="#" id="BtnOpenSwitches">Switches</a></li>
  </ul>
 
  <div id="TabWeather" class="tab">
