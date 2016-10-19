@@ -35,7 +35,7 @@ module.exports = {
     });
   },
 
-  checkStates: function (callback) {
+  checkStates: function (callback, fakeMoment) {
 	var w = new wsClient();
     w.on('connect', function(connection) {
         connection.send(JSON.stringify({"cmd": "update"}));
@@ -49,9 +49,9 @@ module.exports = {
                     if(json.type == 'update')
                     {
                         if(json.data.s0 != null)
-                            callback(json.data.s0, 0, connection);
+                            callback(json.data.s0, 0, connection, fakeMoment);
                         if(json.data.s1 != null)
-                            callback(json.data.s1, 1, connection);
+                            callback(json.data.s1, 1, connection, fakeMoment);
 
                         connection.close();
 

@@ -16,22 +16,25 @@ var tweetOff = helper.tweetSwitchedOff;
 var schedule = [
 	// mode     := "on" | "off"
 	// target   := "main" | "trees" | "reserved" | "front" | "back"
-	// when     := ($sunrise$ | $sunset$) + NUM_SECONDS
+	// when     := ($sunrise$ | $sunset$ | $tt$) + NUM_SECONDS
 	// interval := NUM_SECONDS
-	  { "mode" : "off", "target" : "front", "when" : "$sunrise$-(30*60)", "interval" : 3600 * 24 * 7 }
-	, { "mode" : "on", "target" : "front", "when" : "$sunset$+(30*60)", "interval" : 3600 * 24 * 7 }
-	
+      { "mode" : "on",  "target" : "front", "when" :      "$tt$ +  5*3600" /*  5:00h          */, "interval" : 3600 * 12 }
+	, { "mode" : "off", "target" : "front", "when" : "$sunrise$ - (15*60)" /* sunrise - 15min */, "interval" : 3600 * 12 }
+	, { "mode" : "on",  "target" : "front", "when" : "$sunset$  + (15*60)" /* sunset + 15min  */, "interval" : 3600 * 12 }
+	, { "mode" : "off", "target" : "front", "when" :      "$tt$ + 23*3600" /* 22:00h          */, "interval" : 3600 * 12 }
+
 	// +++ TESTS +++
 	//, { "mode" : "on", "target" : "front", "when" : "$sunrise$+(3*60*60)", "interval" : 3600 * 24 * 7 }
 	//, { "mode" : "off", "target" : "front", "when" : "$sunrise$+(6*60*60)", "interval" : 3600 * 24 * 7 }
 ];
 
+var _m = require('moment');
 var WebSocketServer = require('websocket').server;
 var clc = require('cli-color');
 var fs = require('fs');
 var util = require('util');
 var dateFormat = require('dateformat');
-var log_file = fs.createWriteStream(__dirname + '/debug-checker.log', {flags : 'w'});
+var log_file = fs.createWriteStream(__dirname + '/debug-scheduler.log', {flags : 'w'});
 var log_stdout = process.stdout;
 
 console.log = function(d) { //
@@ -44,21 +47,19 @@ console.logfile = function(d) { //
 }
 
 var dates = require("./DateOfAYear-2016.json");
-var day = (new Date()).getDate();
-var month = (new Date()).getMonth() + 1;
-var year = (new Date()).getYear();
 
 function getDataOf(year, month, day) {
 	for(var i=0; i < dates.length; ++i) {
 		var o = dates[i];
-		var pattern = year.toString().substring(1) + "-" + twoDigits(month) + "-" + twoDigits(day);
+		var pattern = year.toString().substring(2) + "-" + twoDigits(month) + "-" + twoDigits(day);
 		if(o.date == pattern)
 			return o;
 	}
 	return null;
 }
 
-function getSecondsOf(str, y, m, d) {
+function getSecondsOf(str, y, m, d) 
+{
 	var hasAm = str.indexOf("AM") != -1;
 	var hasPm = str.indexOf("PM") != -1;
 	
@@ -77,35 +78,18 @@ function getSecondsOf(str, y, m, d) {
 }
 
 function getStartSecondsOf(y, m , d) {
-	var startOfDay = (new Date(y + 1900, m - 1, d)).getTime();
-	return (parseInt(startOfDay) + parseInt(new Date(y + 1900, m, d).getTimezoneOffset())) / 1000;
+	return _m({
+		y : y,	M : m, day : d,
+		h : 0, m : 0, s : 0, ms : 0}).unix();
 }
 
-function getLocalNowTimestamp() {
-	var n = new Date();
-	var v= n.getTime();
-    return Math.round((parseInt(v)) / 1000); // + (new Date().getTimezoneOffset())) / 1000);
+function getStartSecondsOfToday() {
+	return _m({
+		y : _m().year(), M : _m().month(), day : _m().date(),
+		h : hour, m : minute, s : 0, ms : 0});
 }
 
-var dataOfDay = getDataOf(year, month, day);
-if(dataOfDay == null)
-	return;
-
-var sunrise = dataOfDay.data.sunrise;
-var sunset = dataOfDay.data.sunset;
-var moonphase = dataOfDay.data.moonphase;
-
-var sunrise0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunrise, year, month, day));
-var sunset0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunset, year, month, day));
-
-var mo = clc.xterm(202);
-//console.log("It is " + clc.yellow(getLocalNowTimestamp()));
-console.log("It is " + (new Date()).toLocaleString());
-console.log(" Sunrise: " + mo(sunrise));
-console.log(" Sunset:  " + mo(sunset));
-//console.log("Data: " + sunrise0 + " until " + sunset0 + " (" + moonphase + ")");
-
-checkStates(function(obj, mode, c) {
+var callback = function(obj, mode, c, mFake) {
 	// mode -> 0:=valve, 1:=switch
 	try
 	{
@@ -118,67 +102,86 @@ checkStates(function(obj, mode, c) {
 		var h = function(data) {
 			var name = data.name;
 			var state = data.state;
-			//var lastAccess = parseInt(parseInt(data.lastAccess) / 1000);
-			//var lastAccessPretty = dateFormat(data.lastAccess, "dd, mm dS, h:MM:ss TT");
-			//var interval = parseInt(data.interval * 60);
-			//var intervalDeadlinePretty = dateFormat((lastAccess + interval) * 1000, "dd, mm dS, h:MM:ss TT");
+			var stateMode = state == 'true' || state == true ? "on" : "off";
 
-			for(var i=0; i < schedule.length; ++i) {
-				var sched = schedule[i];
+			var scheds = schedule;
+
+			for(var i=0; i < scheds.length; ++i) {
+				var sched = scheds[i];
 
 				if(sched.target != name)
 					continue;
 
 				sched.when = sched.when.replace("$sunrise$", sunrise0);
 				sched.when = sched.when.replace("$sunset$", sunset0);
+				sched.when = sched.when.replace("$tt$", parseInt(getStartSecondsOf(year, month, day)));
 				sched.when = eval(sched.when);
+			};
 
-				var v = new Date(sched.when * 1000);
-				    v = dateFormat(v, "dS/mm, h:MM:ss TT");
-				var localTime = getLocalNowTimestamp();
-				var scheduleTime = sched.when;
+			if(mFake == null || mFake == 'undefined')
+				mFake = _m.unix();
 
-				console.log("switch '" + sched.target + "' " + (sched.mode == "on" ? clc.green("on") : clc.red("off")) + ", when: " + v);
-				//console.log("Mode: " + sched.mode);
-				//console.log("State: " + state);
-				//console.log("Typeof: " + typeof(state));
-
-				var res = false;
-				var interval = 0;
-
-				if(sched.mode == "on" && (state == false || state == "false"))
+			var schedIndex = -1;
+			for(var i=0; i < scheds.length; ++i) 
+			{
+				var s0 = _m.unix(scheds[i].when);
+				var s1 = null;
+				if(i >= (scheds.length - 1))
+					s1 = _m({y : 2020, M : 1, day : 1});
+				else
+					s1 = _m.unix(scheds[i+1].when);				
+		
+				if(mFake.isAfter(s0) && mFake.isSameOrBefore(s1))
 				{
-					if(localTime >= scheduleTime)
-					{
-						res = true;
-						interval = sched.interval;
-						tweetOn({type: mode == 0 ? 'Valve' : 'Light', targetName: sched.target, interval: sched.interval});
-					}
+					schedIndex = i;
+					break;
 				}
-				else if(sched.mode == "off" && (state == true || state == "true"))
-				{
-					if(localTime <= scheduleTime)
-					{
-						res = true;
-						interval = 0;
-						tweetOff({type: mode == 0 ? 'Valve' : 'Light', targetName: sched.target});
-					}
-				}
+			}
 
-				if(res == true || res == "true")
-				{
-					var mm = clc.xterm(202);
-					if(mode == 0)
-					{
-						console.log(mm(" > Toggle valve: " + sched.target));
-						c.send(JSON.stringify({valve: sched.target, interval: interval}));
-					}
-					else if(mode == 1)
-					{
-						console.log(mm(" > Toggle switch: " + sched.target));
-						c.send(JSON.stringify({switches: sched.target, interval: interval}));
-					}
+			if(schedIndex <= -1)
+				return;
+
+			var rs = scheds[schedIndex];
+		
+			if(rs.target != name)
+				return;
+	
+			//console.log("stateMode: " + stateMode + ", rs.mode: " + rs.mode);
+
+			if(stateMode == rs.mode)
+				return;
+
+			var tweeting = null;
+
+			console.log("Current state of '" + rs.target + "' is '" + stateMode + "'.");
+
+			if(rs.mode == 'on')
+			{
+				tweeting = function(rr) {
+					tweetOn({type: mode == 0 ? 'Valve' : 'Light', 
+						targetName: rr.target, interval: rr.interval});
+				};
+			}
+			else
+			{
+				tweeting = function(rr) {
+					tweetOff({type: mode == 0 ? 'Valve' : 'Light',
+						targetName: rr.target});
 				}
+			}
+
+			var mm = clc.xterm(202);
+			if(mode == 0)
+			{
+				console.log(mm(" > Toggle valve: " + rs.target + " to " + rs.mode));
+				c.send(JSON.stringify({valve: rs.target, interval: parseInt(rs.interval/60)}));
+				tweeting(rs);
+			}
+			else if(mode == 1)
+			{
+				console.log(mm(" > Toggle switch: " + rs.target + " to " + rs.mode));
+				c.send(JSON.stringify({switches: rs.target, interval: parseInt(rs.interval/60)}));
+				tweeting(rs);
 			}
 		};
 
@@ -195,5 +198,37 @@ checkStates(function(obj, mode, c) {
 	{
 		// ignore
 	}
-});
+};
+
+var year = _m().year();
+var month = _m().month();
+var day = _m().date();
+
+var dataOfDay = getDataOf(year, month, day);
+if(dataOfDay == null) {
+	console.log("No data for date.");
+    return;
+}
+
+var sunrise = dataOfDay.data.sunrise;
+var sunset = dataOfDay.data.sunset;
+var moonphase = dataOfDay.data.moonphase;
+
+var sunrise0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunrise, year, month, day));
+var sunset0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunset, year, month, day));
+
+//for(var hour = 0; hour < 24; ++hour) {
+//	for(var minute = 0; minute < 60; minute+=30) {
+		
+//		var mFake = _m({
+//			y : year, M : month, day : day,
+//			h : 20, m : 5, s : 0, ms : 0});
+
+        var mFake = _m({
+            y : year, M : month, day : day,
+            h : _m().hour(), m : _m().minutes(), s : 0, ms : 0});
+
+		checkStates(callback, mFake);
+//	}
+//}
 

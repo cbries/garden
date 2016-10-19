@@ -52,6 +52,7 @@ function sendWeatherData(c) {
 
 function executeCommand(cmdcall) {
 	var child = exec(cmdcall, execLog);
+	//var child = exec("ls", execLog);
 	child.on('close', function(code) {
 		console.log("Command: " + cmdcall + ", Result: " + code);
 		if(code != 0)
@@ -166,7 +167,7 @@ function setGpio(c, data) {
 	
 	if(gpiopin > -1)
 	{	
-		console.log(name + "::GPIO: " + gpiopin + " -> " + state + " (" + lastAccess + ")");
+		console.log(name + "::GPIO: " + gpiopin + " -> " + state + " (" + lastAccess + ", " + interval + ")");
 	
 		if(state === true)
 			executeCommand(cmd_gpio + " write " + gpiopin + " 1");
@@ -301,11 +302,11 @@ wsServer.on('request', function(request) {
     if (!originIsAllowed(request.origin)) {
       // Make sure we only accept requests from an allowed origin
       request.reject();
-      console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+      //console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
       return;
     }
 
-    console.log((new Date()) + ' Connection accepted.');
+    //console.log((new Date()) + ' Connection accepted.');
     var c = request.accept(null, request.origin);
     connections.push(c);
 	
@@ -330,6 +331,6 @@ wsServer.on('request', function(request) {
     });
 	
     c.on('close', function(reasonCode, description) {
-        console.log((new Date()) + ' Peer ' + c.remoteAddress + ' disconnected.');
+        //console.log((new Date()) + ' Peer ' + c.remoteAddress + ' disconnected.');
     });
 });

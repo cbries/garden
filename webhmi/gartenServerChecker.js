@@ -53,14 +53,14 @@ var checkState = function(obj, mode, c) {
 
 	  if(interval != 0)
 	  {
-	  	console.log(" ################################################## ");	
-	  	console.log("Check state of " + name + " (Interval: " + interval + ")");
-	  	console.log("Last access:  " + lastAccess);
-	  	console.log("Interval:     " + interval);
-	  	console.log("Current Time: " + currentTime);
-	  	console.log("Left:         " + currentTime - (lastAccess + interval));
-	  	var v = currentTime >= (lastAccess + interval);
-	  	console.log("Disable:      " + v);
+	  	//console.log(" ################################################## ");	
+	  	//console.log("Check state of " + name + " (Interval: " + interval + ")");
+	  	//console.log("Last access:  " + lastAccess);
+	  	//console.log("Interval:     " + interval);
+	  	//console.log("Current Time: " + currentTime);
+	  	//console.log("Left:         " + currentTime - (lastAccess + interval));
+	  	//var v = currentTime >= (lastAccess + interval);
+	  	//console.log("Disable:      " + v);
 	  }
 
 	  if(state == true && currentTime >= (lastAccess + interval))
