@@ -19,8 +19,8 @@ var schedule = [
 	// when     := ($sunrise$ | $sunset$ | $tt$) + NUM_SECONDS
 	// interval := NUM_SECONDS
       { "mode" : "on",  "target" : "front", "when" :      "$tt$ +  5*3600" /*  5:00h          */, "interval" : 3600 * 12 }
-	, { "mode" : "off", "target" : "front", "when" : "$sunrise$ - (15*60)" /* sunrise - 15min */, "interval" : 3600 * 12 }
-	, { "mode" : "on",  "target" : "front", "when" : "$sunset$  + (15*60)" /* sunset + 15min  */, "interval" : 3600 * 12 }
+	, { "mode" : "off", "target" : "front", "when" : "$sunrise$ + (30*60)" /* sunrise + 30min */, "interval" : 3600 * 12 }
+	, { "mode" : "on",  "target" : "front", "when" : "$sunset$  - (15*60)" /* sunset - 15min  */, "interval" : 3600 * 12 }
 	, { "mode" : "off", "target" : "front", "when" :      "$tt$ + 23*3600" /* 22:00h          */, "interval" : 3600 * 12 }
 
 	// +++ TESTS +++
@@ -124,6 +124,9 @@ var callback = function(obj, mode, c, mFake) {
 			var schedIndex = -1;
 			for(var i=0; i < scheds.length; ++i) 
 			{
+				if(name != scheds[i].target)
+					continue;
+
 				var s0 = _m.unix(scheds[i].when);
 				var s1 = null;
 				if(i >= (scheds.length - 1))
@@ -138,8 +141,22 @@ var callback = function(obj, mode, c, mFake) {
 				}
 			}
 
-			if(schedIndex <= -1)
+			if(schedIndex <= -1) {
+				console.log("No action to perform for '" + name + "'");
 				return;
+			}
+
+			console.log(clc.blueBright.underline(name + " is " + stateMode));
+            for(var i=0; i < scheds.length; ++i)
+            {
+                var s = scheds[i];
+                if(s.target != name)
+                    continue;
+				var my = clc.xterm(15).bgXterm(0);
+				if(schedIndex == i)
+					my = clc.xterm(11).bgXterm(0);
+                console.log(my("S: " + _m.unix(s.when).format() + " (" + _m.unix(s.when).format("HH:mm") + ") -> " + s.mode));
+            }
 
 			var rs = scheds[schedIndex];
 		
@@ -148,8 +165,10 @@ var callback = function(obj, mode, c, mFake) {
 	
 			//console.log("stateMode: " + stateMode + ", rs.mode: " + rs.mode);
 
-			if(stateMode == rs.mode)
+			if(stateMode == rs.mode) {
+				console.log("No action to perform, target state of '" + rs.target + "' is correct.");
 				return;
+			}
 
 			var tweeting = null;
 
@@ -201,7 +220,7 @@ var callback = function(obj, mode, c, mFake) {
 };
 
 var year = _m().year();
-var month = _m().month();
+var month = _m().month() + 1;
 var day = _m().date();
 
 var dataOfDay = getDataOf(year, month, day);
@@ -216,6 +235,9 @@ var moonphase = dataOfDay.data.moonphase;
 
 var sunrise0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunrise, year, month, day));
 var sunset0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunset, year, month, day));
+
+//console.log("Sunrise: " + _m.unix(sunrise0).format() + ", " + sunrise0 + ", " + _m.unix(sunrise0).unix());
+//console.log("Sunset:  " + _m.unix(sunset0).format() + ", " + sunset0 + ", " + _m.unix(sunset0).unix());
 
 //for(var hour = 0; hour < 24; ++hour) {
 //	for(var minute = 0; minute < 60; minute+=30) {
