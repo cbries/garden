@@ -22,7 +22,6 @@ var schedule = [
 	, { "mode" : "off", "target" : "front", "when" : "$sunrise$ + (30*60)" /* sunrise + 30min */, "interval" : 3600 * 12 }
 	, { "mode" : "on",  "target" : "front", "when" : "$sunset$  - (15*60)" /* sunset - 15min  */, "interval" : 3600 * 12 }
 	, { "mode" : "off", "target" : "front", "when" :      "$tt$ + 23*3600" /* 22:00h          */, "interval" : 3600 * 12 }
-
 	// +++ TESTS +++
 	//, { "mode" : "on", "target" : "front", "when" : "$sunrise$+(3*60*60)", "interval" : 3600 * 24 * 7 }
 	//, { "mode" : "off", "target" : "front", "when" : "$sunrise$+(6*60*60)", "interval" : 3600 * 24 * 7 }
@@ -219,22 +218,24 @@ var callback = function(obj, mode, c, mFake) {
 	}
 };
 
-var year = _m().year();
-var month = _m().month() + 1;
-var day = _m().date();
+  console.log(" ### CHECK ### ");
 
-var dataOfDay = getDataOf(year, month, day);
-if(dataOfDay == null) {
+  var year = _m().year();
+  var month = _m().month() + 1;
+  var day = _m().date();
+
+  var dataOfDay = getDataOf(year, month, day);
+  if(dataOfDay == null) {
 	console.log("No data for date.");
     return;
-}
+  }
 
-var sunrise = dataOfDay.data.sunrise;
-var sunset = dataOfDay.data.sunset;
-var moonphase = dataOfDay.data.moonphase;
+  var sunrise = dataOfDay.data.sunrise;
+  var sunset = dataOfDay.data.sunset;
+  var moonphase = dataOfDay.data.moonphase;
 
-var sunrise0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunrise, year, month, day));
-var sunset0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunset, year, month, day));
+  var sunrise0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunrise, year, month, day));
+  var sunset0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunset, year, month, day));
 
 //console.log("Sunrise: " + _m.unix(sunrise0).format() + ", " + sunrise0 + ", " + _m.unix(sunrise0).unix());
 //console.log("Sunset:  " + _m.unix(sunset0).format() + ", " + sunset0 + ", " + _m.unix(sunset0).unix());
@@ -253,4 +254,5 @@ var sunset0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecond
 		checkStates(callback, mFake);
 //	}
 //}
+
 

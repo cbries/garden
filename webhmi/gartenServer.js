@@ -32,8 +32,6 @@ console.logfile = function(d) { //
   log_file.write(util.format(d) + '\n');
 }
 
-var connections = [];
-
 var valveStates = { "valves" : [
 	{"name": "main", "state": false, "lastAccess": 0, "gpiopin" : valveMain, "interval": 0},
 	{"name": "trees", "state": false, "lastAccess": 0, "gpiopin" : valveTrees, "interval": 0},
@@ -308,7 +306,6 @@ wsServer.on('request', function(request) {
 
     //console.log((new Date()) + ' Connection accepted.');
     var c = request.accept(null, request.origin);
-    connections.push(c);
 	
 	sendData(c, "state", valveStates);
 	sendData(c, "switchStates", switchStates);
@@ -319,18 +316,21 @@ wsServer.on('request', function(request) {
 		{
 			var json = JSON.parse(msg.utf8Data);
 			handlingMessage(c, json);
+			if(c != null)
+				c.close();
+			c = null;
 		} 
 		catch (e) 
 		{
 			console.log(e);
-			
 			sendError(c, "Command failed{" + e.name + ": " + e.message + "}");
-			
 			return ;
 		}		
     });
 	
     c.on('close', function(reasonCode, description) {
         //console.log((new Date()) + ' Peer ' + c.remoteAddress + ' disconnected.');
+		c.close();
+		c = null;
     });
 });

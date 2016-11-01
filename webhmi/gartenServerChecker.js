@@ -49,7 +49,7 @@ var checkState = function(obj, mode, c) {
 	  var interval = parseInt(data.interval * 60);
 
 	  var d = new Date();
-          var currentTime = d.getTime() / 1000;
+      var currentTime = d.getTime() / 1000;
 
 	  if(interval != 0)
 	  {
@@ -92,6 +92,8 @@ var checkState = function(obj, mode, c) {
 			}
 		}
 	  }
+
+	  data = null;
 	};
 
 	if(data != null)
@@ -100,8 +102,13 @@ var checkState = function(obj, mode, c) {
         {
 			var o = data[i];
             h(o);
+			h = null;
+			o = null;
 		}
     }
+
+	c.close();
+	c = null;
   }
   catch(ex)
   {

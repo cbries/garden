@@ -77,7 +77,7 @@ var checkState = function(obj, mode, c) {
 				c.send(JSON.stringify({switches: target, interval: targetInterval}));
 		
 			console.log(target + " " + (!targetState ? clc.red('stopped') : clc.green('running')));
-		}		
+		}
 	};
 
 	if(data != null)
@@ -86,8 +86,11 @@ var checkState = function(obj, mode, c) {
         {
 			var o = data[i];
             h(o);
+			o = null;
 		}
     }
+	
+	data = null;
   }
   catch(ex)
   {
@@ -118,6 +121,7 @@ var checkStates = function() {
 						connection.close();
 				    	
 						w = null;
+						json = null;
 				    }
 				  }				
 				}
