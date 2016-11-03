@@ -24,12 +24,12 @@ var log_file = fs.createWriteStream(__dirname + '/debug.log', {flags : 'w'});
 var log_stdout = process.stdout;
 
 console.log = function(d) { //
-  log_file.write(util.format(d) + '\n');
-  log_stdout.write(util.format(d) + '\n');
+//  log_file.write(util.format(d) + '\n');
+//  log_stdout.write(util.format(d) + '\n');
 };
 
 console.logfile = function(d) { //
-  log_file.write(util.format(d) + '\n');
+//  log_file.write(util.format(d) + '\n');
 }
 
 var valveStates = { "valves" : [
@@ -44,8 +44,9 @@ var switchStates = { "switches" : [
 ]};
 
 function sendWeatherData(c) {
-	var json = JSON.parse(require('fs').readFileSync('./gartenServer.data.json', 'utf8'));
+	var json = JSON.parse(fs.readFileSync('./gartenServer.data.json', 'utf8'));
 	sendData(c, "data", json);
+	json = null;
 }
 
 function executeCommand(cmdcall) {
@@ -55,6 +56,7 @@ function executeCommand(cmdcall) {
 		console.log("Command: " + cmdcall + ", Result: " + code);
 		if(code != 0)
 			sendError(null, "Command failed: " + cmdcall + ", Result: " + code);	
+		child = null;
 	});
 }
 
@@ -107,6 +109,8 @@ var server = http.createServer(function(request, response) {
 	}
 	
 	response.end();
+	response = null;
+	raw = null;
 });
 
 function execLog(error, stdout, stderr) {
@@ -240,10 +244,10 @@ function handlingMessage(c, json) {
 	{
 		var valveName = json.valve;
 		if(valveName === 'update')
-        	{
-        	        sendWeatherData(c);
-        	        return;
-        	}
+       	{
+            sendWeatherData(c);
+            return;
+      	}
 
 		var interval = json.interval;
 		var valveEntry = isValidValve(valveName);	
@@ -265,7 +269,9 @@ function handlingMessage(c, json) {
 			valveEntry.lastAccess = d.getTime();
 			updateValves(c);
 			sendData(c, "state", valveStates);
+			v = null;
 		}
+		valveEntry = null;
 	}
 
 	if(json.switches != null && json.switches != 'undefined')
@@ -292,6 +298,7 @@ function handlingMessage(c, json) {
 			updateSwitches(c);
 			sendData(c, "switchStates", switchStates); 
 		}
+		switchEntry = null;
 	}
 }
 
@@ -300,12 +307,14 @@ wsServer.on('request', function(request) {
     if (!originIsAllowed(request.origin)) {
       // Make sure we only accept requests from an allowed origin
       request.reject();
+	  request = null;
       //console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
       return;
     }
 
     //console.log((new Date()) + ' Connection accepted.');
     var c = request.accept(null, request.origin);
+	request = null;
 	
 	sendData(c, "state", valveStates);
 	sendData(c, "switchStates", switchStates);
@@ -319,9 +328,14 @@ wsServer.on('request', function(request) {
 			if(c != null)
 				c.close();
 			c = null;
+			msg = null;
+			json = null;
 		} 
 		catch (e) 
 		{
+			if(c != null)
+                c.close();
+            c = null;
 			console.log(e);
 			sendError(c, "Command failed{" + e.name + ": " + e.message + "}");
 			return ;
@@ -330,7 +344,9 @@ wsServer.on('request', function(request) {
 	
     c.on('close', function(reasonCode, description) {
         //console.log((new Date()) + ' Peer ' + c.remoteAddress + ' disconnected.');
-		c.close();
+		if(c != null)
+			c.close();
 		c = null;
     });
 });
+
