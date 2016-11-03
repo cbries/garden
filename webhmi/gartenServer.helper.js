@@ -54,9 +54,6 @@ module.exports = {
                             callback(json.data.s1, 1, connection, fakeMoment);
 
                         connection.close();
-						connection = null;
-                        w = null;
-						json = null;
                     }
                   }
                 }
@@ -67,15 +64,10 @@ module.exports = {
 
         connection.on('close', function(evt) {
             checkInProgress = false;
-			if(connection != null)
-				connection.close();
-			connection = null;
-			w = null;
         });
     })
     w.on('connectFailed', function(evt) {
         console.log("WebSocket failed: " + evt.toString());
-		w = null;
 	});
     w.connect(cfg.wsaddr);
   },
