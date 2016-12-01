@@ -10,18 +10,16 @@ var helper = require('./gartenServer.helper.js');
 var cfg = require('./gartenServer.cfg.js').cfg;
 var twoDigits = helper.twoDigits;
 var checkStates = helper.checkStates;
-var tweetOn = helper.tweetSwitchedOn;
-var tweetOff = helper.tweetSwitchedOff;
 
 var schedule = [
 	// mode     := "on" | "off"
 	// target   := "main" | "trees" | "reserved" | "front" | "back"
 	// when     := ($sunrise$ | $sunset$ | $tt$) + NUM_SECONDS
 	// interval := NUM_SECONDS
-      { "mode" : "on",  "target" : "front", "when" :      "$tt$ +  5*3600" /*  5:00h          */, "interval" : 3600 * 12 }
-	, { "mode" : "off", "target" : "front", "when" : "$sunrise$ + (30*60)" /* sunrise + 30min */, "interval" : 3600 * 12 }
+      { "mode" : "on",  "target" : "front", "when" :      "$tt$ + 5.5*3600" /*  5:30h          */, "interval" : 3600 * 12 }
+	, { "mode" : "off", "target" : "front", "when" : "$sunrise$ + (15*60)" /* sunrise + 15min */, "interval" : 3600 * 12 }
 	, { "mode" : "on",  "target" : "front", "when" : "$sunset$  - (15*60)" /* sunset - 15min  */, "interval" : 3600 * 12 }
-	, { "mode" : "off", "target" : "front", "when" :      "$tt$ + 23*3600" /* 22:00h          */, "interval" : 3600 * 12 }
+	, { "mode" : "off", "target" : "front", "when" :      "$tt$ + 22.5*3600" /* 22:30h          */, "interval" : 3600 * 12 }
 	// +++ TESTS +++
 	//, { "mode" : "on", "target" : "front", "when" : "$sunrise$+(3*60*60)", "interval" : 3600 * 24 * 7 }
 	//, { "mode" : "off", "target" : "front", "when" : "$sunrise$+(6*60*60)", "interval" : 3600 * 24 * 7 }
@@ -175,17 +173,11 @@ var callback = function(obj, mode, c, mFake) {
 
 			if(rs.mode == 'on')
 			{
-				tweeting = function(rr) {
-					tweetOn({type: mode == 0 ? 'Valve' : 'Light', 
-						targetName: rr.target, interval: rr.interval});
-				};
+				// ignore
 			}
 			else
 			{
-				tweeting = function(rr) {
-					tweetOff({type: mode == 0 ? 'Valve' : 'Light',
-						targetName: rr.target});
-				}
+				// ignore
 			}
 
 			var mm = clc.xterm(202);
@@ -193,13 +185,11 @@ var callback = function(obj, mode, c, mFake) {
 			{
 				console.log(mm(" > Toggle valve: " + rs.target + " to " + rs.mode));
 				c.send(JSON.stringify({valve: rs.target, interval: parseInt(rs.interval/60)}));
-				tweeting(rs);
 			}
 			else if(mode == 1)
 			{
 				console.log(mm(" > Toggle switch: " + rs.target + " to " + rs.mode));
 				c.send(JSON.stringify({switches: rs.target, interval: parseInt(rs.interval/60)}));
-				tweeting(rs);
 			}
 		};
 

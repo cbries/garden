@@ -8,8 +8,6 @@
 
 var helper = require('./gartenServer.helper.js');
 var checkStates = helper.checkStates;
-var tweetOn = helper.tweetSwitchedOn;
-var tweetOff = helper.tweetSwitchedOff;
 var cfg = require('./gartenServer.cfg.js').cfg;
 
 var WebSocketServer = require('websocket').server;
@@ -68,12 +66,10 @@ var checkState = function(obj, mode, c) {
 		if(mode == 0)
 		{
 			c.send(JSON.stringify({valve: name, interval: 0}));
-			tweetOff({type: mode == 0 ? 'Valve' : 'Light', targetName: name});
 		}
 		else if(mode == 1)
 		{
 			c.send(JSON.stringify({switches: name, interval: 0}));
-			tweetOff({type: mode == 0 ? 'Valve' : 'Light', targetName: name});
 		}
 	  }
 	  else
@@ -83,17 +79,13 @@ var checkState = function(obj, mode, c) {
 			if(mode == 0)
 			{
 			    c.send(JSON.stringify({valve: name, interval: 0}));
-				tweetOff({type: mode == 0 ? 'Valve' : 'Light', targetName: name});
 			}
 			else if(mode == 1)
 			{
 				c.send(JSON.stringify({switches: name, interval: 0}));
-				tweetOff({type: mode == 0 ? 'Valve' : 'Light', targetName: name});
 			}
 		}
 	  }
-
-	  data = null;
 	};
 
 	if(data != null)
@@ -102,8 +94,6 @@ var checkState = function(obj, mode, c) {
         {
 			var o = data[i];
             h(o);
-			h = null;
-			o = null;
 		}
     }
 
