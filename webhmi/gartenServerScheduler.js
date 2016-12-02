@@ -117,20 +117,19 @@ var callback = function(obj, mode, c, mFake) {
 
 			if(mFake == null || mFake == 'undefined')
 				mFake = _m.unix();
-
+			
 			var schedIndex = -1;
 			for(var i=0; i < scheds.length; ++i) 
 			{
 				if(name != scheds[i].target)
 					continue;
-
 				var s0 = _m.unix(scheds[i].when);
 				var s1 = null;
 				if(i >= (scheds.length - 1))
 					s1 = _m({y : 2020, M : 1, day : 1});
 				else
 					s1 = _m.unix(scheds[i+1].when);				
-		
+				
 				if(mFake.isAfter(s0) && mFake.isSameOrBefore(s1))
 				{
 					schedIndex = i;
@@ -166,8 +165,6 @@ var callback = function(obj, mode, c, mFake) {
 				console.log("No action to perform, target state of '" + rs.target + "' is correct.");
 				return;
 			}
-
-			var tweeting = null;
 
 			console.log("Current state of '" + rs.target + "' is '" + stateMode + "'.");
 
@@ -211,9 +208,9 @@ var callback = function(obj, mode, c, mFake) {
   console.log(" ### CHECK ### ");
 
   var year = _m().year();
-  var month = _m().month() + 1;
+  var month = _m().month();
   var day = _m().date();
-
+  
   var dataOfDay = getDataOf(year, month, day);
   if(dataOfDay == null) {
 	console.log("No data for date.");
@@ -226,6 +223,8 @@ var callback = function(obj, mode, c, mFake) {
 
   var sunrise0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunrise, year, month, day));
   var sunset0 = parseInt(getStartSecondsOf(year, month, day)) + parseInt(getSecondsOf(sunset, year, month, day));
+
+  console.log("Today: " + _m({y : year, M : month, day : day}).format("DD.MM.YYYY"));
 
 //console.log("Sunrise: " + _m.unix(sunrise0).format() + ", " + sunrise0 + ", " + _m.unix(sunrise0).unix());
 //console.log("Sunset:  " + _m.unix(sunset0).format() + ", " + sunset0 + ", " + _m.unix(sunset0).unix());
