@@ -43,7 +43,7 @@ console.logfile = function(d) { //
   log_file.write(util.format(d) + '\n');
 }
 
-var dates = require("./DateOfAYear-2016.json");
+var dates = require("./DateOfAYear-2018.json");
 
 function getDataOf(year, month, day) {
 	for(var i=0; i < dates.length; ++i) {
@@ -211,7 +211,7 @@ var callback = function(obj, mode, c, mFake) {
   var month = _m().month();
   var day = _m().date();
   
-  var dataOfDay = getDataOf(year, month, day);
+  var dataOfDay = getDataOf(year, month+1, day);
   if(dataOfDay == null) {
 	console.log("No data for date.");
     return;

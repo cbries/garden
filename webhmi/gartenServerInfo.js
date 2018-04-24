@@ -32,10 +32,16 @@ var wsClient = require('websocket').client;
 var sleep = require('sleep').sleep;
 var usleep = require('sleep').usleep;	
 var dateFormat = require('dateformat');
-var args = require('optimist')
-	.usage('Usage: $0 -i [seconds]')
-	.demand(['i'])
-	.argv;
+
+if(process.argv.slice(2).length <= 1)
+{
+	console.log("Usage: node " + process.argv[1] + " -i [seconds]");
+	return;
+}
+
+var argv = require('minimist')(process.argv.slice(2));
+
+cfg.updateIntervalInfo = argv.i * 1000;
 
 var checkState = function(obj, mode, c) { 
 	// mode -> 0:=valve, 1:=switch

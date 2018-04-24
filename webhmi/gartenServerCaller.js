@@ -35,14 +35,22 @@ var wsClient = require('websocket').client;
 var sleep = require('sleep').sleep;
 var usleep = require('sleep').usleep;	
 var dateFormat = require('dateformat');
-var args = require('optimist')
-	.usage('Usage: $0 -t [name] -s [true|false] -i [num]')
-	.demand(['t', 's', 'i'])
-	.argv;
+//var args = require('optimist')
+//	.usage('Usage: $0 -n [name] -s [true|false] -t [num]')
+//	.demand(['n', 's', 't'])
+//	.argv;
 
-var target = args.t;
-var targetState = args.s == "true" ? true : false;
-var targetInterval = parseInt(args.i); // seconds
+if(process.argv.slice(2).length <= 6)
+{
+    console.log("Usage: node " + process.argv[1] + " -n [name] -s [true|false] -t [num]");
+    return;
+}
+
+var argv = require('minimist')(process.argv.slice(2));
+
+var target = argv.n;
+var targetState = argv.s == "true" ? true : false;
+var targetInterval = parseInt(argv.t); // seconds
 
 console.log("Target:   " + target);
 console.log("State:    " + targetState);
