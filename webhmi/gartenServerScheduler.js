@@ -13,7 +13,7 @@ var checkStates = helper.checkStates;
 
 var schedule = [
 	// mode     := "on" | "off"
-	// target   := "main" | "trees" | "reserved" | "front" | "back"
+	// target   := "main" | "trees" | "backyard" | "front" | "back"
 	// when     := ($sunrise$ | $sunset$ | $tt$) + NUM_SECONDS
 	// interval := NUM_SECONDS
       { "mode" : "on",  "target" : "front", "when" :      "$tt$ + 5.5*3600" /*  5:30h          */, "interval" : 3600 * 12 }

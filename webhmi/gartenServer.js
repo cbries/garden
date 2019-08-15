@@ -10,6 +10,7 @@ var cfg = require('./gartenServer.cfg.js').cfg;
 var valveMain = cfg.valveMain;
 var valveTrees = cfg.valveTrees;
 var valveReserved = cfg.valveReserved;
+var valveDropping = cfg.valveDropping;
 var lightsFront = cfg.lightsFront;
 var lightsBack = cfg.lightsBack;
 var wsListenPort = cfg.wsListenPort;
@@ -35,7 +36,8 @@ console.logfile = function(d) { //
 var valveStates = { "valves" : [
 	{"name": "main", "state": false, "lastAccess": 0, "gpiopin" : valveMain, "interval": 0},
 	{"name": "trees", "state": false, "lastAccess": 0, "gpiopin" : valveTrees, "interval": 0},
-	{"name": "reserved", "state": false, "lastAccess": 0, "gpiopin" : valveReserved, "interval": 0},
+	{"name": "backyard", "state": false, "lastAccess": 0, "gpiopin" : valveReserved, "interval": 0},
+	{"name": "dropping", "state": false, "lastAccess": 0, "gpiopin" : valveDropping, "interval": 0}
 ]};
 
 var switchStates = { "switches" : [

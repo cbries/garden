@@ -13,9 +13,17 @@
 var cfg = { wsaddr: "ws://192.168.178.33:23234" };
 
 var valveMap = [
+	// 6 Sprueher vorne im Garten
 	{ name: "main", state: false, lastAccess: 0, interval: 0 },
+
+	// vordere Teil im Garten, Nebenbeet und Teil vom Rasen
 	{ name: "trees", state: false, lastAccess: 0, interval: 0 },
-	{ name: "reserved", state: false, lastAccess: 0, interval: 0 }
+
+	// hintere Teil des Garten an dr Hütte
+	{ name: "backyard", state: false, lastAccess: 0, interval: 0 },
+
+	// Sprühnebel und Tröpfchenleitung
+	{ name: "dropping", state: false, lastAccess: 0, interval: 0 }
 ];
 
 var switchMap = [
@@ -64,7 +72,8 @@ function updateSwitch(data) {
 
 var btnValveMain = null;
 var btnValveTrees = null;
-var btnValveReserved = null;
+var btnValveBackyard = null;
+var btnValveDropping = null;
 
 var imgHumanity = null;
 var dataHumanity = null;
@@ -99,7 +108,8 @@ function initStates() {
 
 	btnValveMain = $('#btnValveMain');
 	btnValveTrees = $('#btnValveTrees');
-	btnValveReserved = $('#btnValveReserved');
+	btnValveBackyard = $('#btnValveBackyard');
+	btnValveDropping = $('#btnValveDropping');
 
 	imgHumanity = $('#imghumanity');
 	dataHumanity = $('#datathumanity');
@@ -117,8 +127,10 @@ function initStates() {
 		btnValveMain.addClass('toggle-button-disabled');
 	if(btnValveTrees !== null && btnValveTrees !== 'undefined')
 		btnValveTrees.addClass('toggle-button-disabled');
-	if(btnValveReserved !== null && btnValveReserved !== 'undefined')
-		btnValveReserved.addClass('toggle-button-disabled');
+	if(btnValveBackyard !== null && btnValveBackyard !== 'undefined')
+		btnValveBackyard.addClass('toggle-button-disabled');
+	if(btnValveDropping !== null && btnValveDropping !== 'undefined')
+        btnValveDropping.addClass('toggle-button-disabled');
 	
 	if(btnLightsFront !== null && btnLightsFront !== 'undefined')
                 btnLightsFront.addClass('toggle-button-disabled');
@@ -172,14 +184,25 @@ function refreshUi() {
 
 	if(valveMap[2].state == true)
 	{
-		btnValveReserved.addClass('toggle-button-selected');
-		btnValveReserved.removeClass('toggle-button-disabled');
+		btnValveBackyard.addClass('toggle-button-selected');
+		btnValveBackyard.removeClass('toggle-button-disabled');
 	}
 	else		
 	{
-		btnValveReserved.addClass('toggle-button-disabled');
-		btnValveReserved.removeClass('toggle-button-selected');
+		btnValveBackyard.addClass('toggle-button-disabled');
+		btnValveBackyard.removeClass('toggle-button-selected');
 	}
+
+	if(valveMap[3].state == true)
+    {
+        btnValveDropping.addClass('toggle-button-selected');
+        btnValveDropping.removeClass('toggle-button-disabled');
+    }
+    else
+    {
+        btnValveDropping.addClass('toggle-button-disabled');
+        btnValveDropping.removeClass('toggle-button-selected');
+    }
 
 	if(switchMap[0].state == true)
 	{
@@ -278,9 +301,9 @@ function handleSwitch(switchData) {
                 {
                         if(switchMap[j].name == o.name)
                         {
-                                switchMap[j].state = o.state;
-                                switchMap[j].lastAccess = o.lastAccess;
-				switchMap[j].interval = o.interval;
+                            switchMap[j].state = o.state;
+                            switchMap[j].lastAccess = o.lastAccess;
+							switchMap[j].interval = o.interval;
                         }
                 }
         }
@@ -436,9 +459,12 @@ $(document).ready(function() {
 	btnValveTrees.click(function(){
 		websocket.send(JSON.stringify({valve: "trees", interval: cmbValveTimer.find('option:selected').val()}));
 	});
-	btnValveReserved.click(function(){
-		websocket.send(JSON.stringify({valve: "reserved", interval: cmbValveTimer.find('option:selected').val()}));
+	btnValveBackyard.click(function(){
+		websocket.send(JSON.stringify({valve: "backyard", interval: cmbValveTimer.find('option:selected').val()}));
 	});
+	btnValveDropping.click(function(){
+        websocket.send(JSON.stringify({valve: "dropping", interval: cmbValveTimer.find('option:selected').val()}));
+    });
 
 	btnLightsFront.click(function(){
 		websocket.send(JSON.stringify({switches: "front", interval: cmbSwitchTimer.find('option:selected').val()}));
@@ -501,6 +527,17 @@ $(document).ready(function() {
 			closeHmi();	
 		}
 	};
+
+	var bgImages = [
+		'bgs/bg01.jpg',
+		'bgs/bg02.jpg',
+		'bgs/bg03.jpg',
+//		'bgs/bg04.jpg',
+		'bgs/bg05.jpg',
+		'bgs/bg06.jpg'
+	];
+
+	$('body').css({'background-image': 'url(' + bgImages[Math.floor(Math.random() * bgImages.length)] + ')'});
 
 }); // document ready
 
@@ -590,9 +627,10 @@ h3 { color: #7E8F7C; margin: 0; padding: 0; padding-top: 15px;}
     <img src="imgerror.png" border="0" width="32" height="32" />
 	<div id="errorMessage"></div>
   </div>
-  <h3>Front Garden (trees)</h3> <div id="txttreesRunning"></div> <div class="toggle-button" id="btnValveTrees"><button></button></div>
-  <h3>Front Garden (large area)</h3> <div id="txtmainRunning"></div> <div class="toggle-button" id="btnValveMain"><button></button></div>
-  <h3>reserved (not used)</h3> <div id="txtreservedRunning"></div> <div class="toggle-button" id="btnValveReserved"><button></button></div>
+  <h3>Backyard (house-side)</h3> <div id="txttreesRunning"><b>data loading</b></div> <div class="toggle-button" id="btnValveTrees"><button></button></div>
+  <h3>Backyard (fence-side)</h3> <div id="txtbackyardRunning"><b>data loading</b></div> <div class="toggle-button" id="btnValveBackyard"><button></button></div>
+  <h3>Front Garden</h3> <div id="txtmainRunning"><b>data loading</b></div> <div class="toggle-button" id="btnValveMain"><button></button></div>
+  <h3>Tr&ouml;pfchen/Spr&uuml;hnebel</h3> <div id="txtdroppingRunning"><b>data loading</b></div> <div class="toggle-button" id="btnValveDropping"><button></button></div>
 
   <div style="padding-top: 25px; padding-bottom: 10px;">
    <b style="color: #7E8F7C;">Intervall</b><br>
@@ -604,6 +642,8 @@ h3 { color: #7E8F7C; margin: 0; padding: 0; padding-top: 15px;}
      <option value="15">15 minutes</option>
      <option value="20">20 minutes</option>
      <option value="30">30 minutes</option>
+	 <option value="45">45 minutes</option>
+	 <option value="60">60 minutes</option>
     </select>
    </div>
   </div>

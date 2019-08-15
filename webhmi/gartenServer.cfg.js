@@ -5,7 +5,8 @@ module.exports = {
 	valveMain: 4,
 	valveTrees: 5,
 	valveReserved: 6,
-	lightsFront: 28,
+	valveDropping: 28,
+	lightsFront: -1, // was 28
 	lightsBack: 29,
 	wsListenPort: 23234,
 	cmd_gpio: "gpio",
