@@ -12,6 +12,10 @@
 //var cfg = { wsaddr: "ws://localhost:23234" };
 var cfg = { wsaddr: "ws://192.168.178.33:23234" };
 
+var autoModeMap = [
+	{ name: "mainAutoMode", state: false, lastAccess: 0, interval: 0 },
+];
+
 var valveMap = [
 	// 6 Sprueher vorne im Garten
 	{ name: "main", state: false, lastAccess: 0, interval: 0 },
@@ -38,6 +42,22 @@ var weatherData = {
 
 // ################################################################
 
+function updateAutoMode(data) {
+	var name = data.name;
+	var state = data.state;
+    var lastAccess = data.lastAccess;
+    var interval = data.interval;
+
+	autoModeMap.forEach(function(entry) {
+		if(entry.name == name)
+        {
+            entry.state = state;
+            entry.lastAccess = lastAccess;
+            entry.interval = interval;
+        }
+	});
+}
+
 function updateValve(data) {
 	var name = data.name;
 	var state = data.state;
@@ -56,19 +76,21 @@ function updateValve(data) {
 
 function updateSwitch(data) {
 	var name = data.name;
-        var state = data.state;
-        var lastAccess = data.lastAccess;
-        var interval = data.interval;
+    var state = data.state;
+    var lastAccess = data.lastAccess;
+    var interval = data.interval;
 
 	switchMap.forEach(function(entry) { 
 		if(entry.name == name)
-                {
-                        entry.state = state;
-                        entry.lastAccess = lastAccess;
-                        entry.interval = interval;
-                }
+        {
+		    entry.state = state;
+            entry.lastAccess = lastAccess;
+            entry.interval = interval;
+        }
 	});
 }
+
+var btnAutoMode = null;
 
 var btnValveMain = null;
 var btnValveTrees = null;
@@ -106,6 +128,7 @@ function initStates() {
 	btnLightsFront = $('#btnLightsFront');
 	btnLightsBack = $('#btnLightsBack');
 
+	btnAutoMode = $('#btnAutoMode');
 	btnValveMain = $('#btnValveMain');
 	btnValveTrees = $('#btnValveTrees');
 	btnValveBackyard = $('#btnValveBackyard');
@@ -122,6 +145,9 @@ function initStates() {
 
 	cmbValveTimer = $('#cmbValveTimer');
 	cmbSwitchTimer = $('#cmbSwitchTimer');
+
+	if(btnAutoMode !== null && btnAutoMode !== 'undefined')
+        btnAutoMode.addClass('toggle-button-disabled');
 
 	if(btnValveMain !== null && btnValveMain !== 'undefined')
 		btnValveMain.addClass('toggle-button-disabled');
@@ -160,6 +186,18 @@ function twoDigits(n) {
 }
 
 function refreshUi() {
+	
+	if(autoModeMap[0].state == true)
+    {
+        btnAutoMode.addClass('toggle-button-selected');
+        btnAutoMode.removeClass('toggle-button-disabled');
+    }
+    else
+    {
+        btnAutoMode.addClass('toggle-button-disabled');
+        btnAutoMode.removeClass('toggle-button-selected');
+    }
+
 	if(valveMap[0].state == true)
 	{
 		btnValveMain.addClass('toggle-button-selected');
@@ -269,6 +307,14 @@ function handleUpdate(data)
 			updateSwitch(o);
 		}
 	}
+	if(data.s2 != null)
+	{
+		for(var i=0; i < data.s2.autoModes.length; ++i)
+		{
+			var o = data.s2.autoModes[i];
+			updateAutoMode(o);
+		}
+	}
 	
 	refeshUi();
 }
@@ -307,6 +353,25 @@ function handleSwitch(switchData) {
                         }
                 }
         }
+
+	refreshUi();
+}
+
+function handleAutoMode(autoModeData) {
+	for(var i=0; i < autoModeData.autoModes.length; ++i)
+	{
+		var o = autoModeData.autoModes[i];
+
+		for(var j=0; j < autoModeMap.length; ++j)
+        {
+			if(autoModeMap[j].name == o.name)
+            {
+				autoModeMap[j].state = o.state;
+                autoModeMap[j].lastAccess = o.lastAccess;
+                autoModeMap[j].interval = o.interval;
+            }
+        }
+	}
 
 	refreshUi();
 }
@@ -370,7 +435,7 @@ $(document).ready(function() {
 		xDown = null;
 		yDown = null;
 	});
-
+	
 	setInterval(function() {
 
 		var chkFnc = function(entry) {
@@ -453,6 +518,10 @@ $(document).ready(function() {
 	
 	btnOpenWeather.trigger("click");
 
+	btnAutoMode.click(function(){
+		websocket.send(JSON.stringify({automode: "mainAutoMode"}));
+	});
+
 	btnValveMain.click(function(){
 		websocket.send(JSON.stringify({valve: "main", interval: cmbValveTimer.find('option:selected').val()}));
 	});
@@ -477,6 +546,8 @@ $(document).ready(function() {
 
 	websocket.onopen = function(evt) {
 		wasConnected = true;
+
+		websocket.send(JSON.stringify({cmd: "update"}));
 	};
 
 	websocket.onmessage = function(str) {
@@ -488,6 +559,8 @@ $(document).ready(function() {
 				handleState(json.data);
 			if(json.type == 'switchStates')
 				handleSwitch(json.data);
+			if(json.type == 'autoModeStates')
+				handleAutoMode(json.data);
 			if(json.type == 'data')
 				handleData(json.data);
 			else
@@ -527,6 +600,11 @@ $(document).ready(function() {
 			closeHmi();	
 		}
 	};
+
+	setInterval(function(){
+		if(wasConnected === false) return;
+		websocket.send(JSON.stringify({cmd: "update"}));
+	}, 5000);
 
 	var bgImages = [
 		'bgs/bg01.jpg',
@@ -627,10 +705,10 @@ h3 { color: #7E8F7C; margin: 0; padding: 0; padding-top: 15px;}
     <img src="imgerror.png" border="0" width="32" height="32" />
 	<div id="errorMessage"></div>
   </div>
-  <h3>Backyard (house-side)</h3> <div id="txttreesRunning"><b>data loading</b></div> <div class="toggle-button" id="btnValveTrees"><button></button></div>
-  <h3>Backyard (fence-side)</h3> <div id="txtbackyardRunning"><b>data loading</b></div> <div class="toggle-button" id="btnValveBackyard"><button></button></div>
-  <h3>Front Garden</h3> <div id="txtmainRunning"><b>data loading</b></div> <div class="toggle-button" id="btnValveMain"><button></button></div>
-  <h3>Tr&ouml;pfchen/Spr&uuml;hnebel</h3> <div id="txtdroppingRunning"><b>data loading</b></div> <div class="toggle-button" id="btnValveDropping"><button></button></div>
+  <h3>Backyard (house-side)</h3> <div id="txttreesRunning"><b><img src="imgs/tenor.gif" width="16" height="16" border="0" style="vertical-align: middle;"> data loading...</b></div> <div class="toggle-button" id="btnValveTrees"><button></button></div>
+  <h3>Backyard (fence-side)</h3> <div id="txtbackyardRunning"><b><img src="imgs/tenor.gif" width="16" height="16" border="0" style="vertical-align: middle;"> data loading...</b></div> <div class="toggle-button" id="btnValveBackyard"><button></button></div>
+  <h3>Front Garden</h3> <div id="txtmainRunning"><b><img src="imgs/tenor.gif" width="16" height="16" border="0" style="vertical-align: middle;"> data loading...</b></div> <div class="toggle-button" id="btnValveMain"><button></button></div>
+  <h3>Tr&ouml;pfchen/Spr&uuml;hnebel</h3> <div id="txtdroppingRunning"><b><img src="imgs/tenor.gif" width="16" height="16" border="0" style="vertical-align: middle;"> data loading...</b></div> <div class="toggle-button" id="btnValveDropping"><button></button></div>
 
   <div style="padding-top: 25px; padding-bottom: 10px;">
    <b style="color: #7E8F7C;">Intervall</b><br>
@@ -647,6 +725,11 @@ h3 { color: #7E8F7C; margin: 0; padding: 0; padding-top: 15px;}
     </select>
    </div>
   </div>
+
+  <div style="padding-bottom: 15px; padding-top: 5px;">
+    <span style="font-weight: bold; color: #7E8F7C;">AutoMode: </span> <div class="toggle-button" style="vertical-align: middle;" id="btnAutoMode"><button></button></div>
+ </div> 
+
  </div> <!-- TabWeather -->
 
  <div id="TabSwitches" class="tab">

@@ -1,1 +1,11 @@
-Usage: node /home/pi/gitrepos/garden/webhmi/gartenServerCaller.js -n [name] -s [true|false] -t [num]
+Target:   mainAutoMode
+State:    false
+Interval: 0 minutes
+Name: main, false
+Name: trees, false
+Name: backyard, false
+Name: dropping, false
+Name: front, false
+Name: back, false
+Name: mainAutoMode, true
+mainAutoMode [31mstopped[39m

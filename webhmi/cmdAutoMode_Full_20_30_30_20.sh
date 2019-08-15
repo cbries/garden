@@ -34,3 +34,9 @@ sleep 1200
 node gartenServerCaller.js -n dropping -s false
 sleep 10
 
+##
+## HAUPTABSCHALTUNG
+##
+
+node gartenServerCaller.js -n mainAutoMode -s false -t 0
+

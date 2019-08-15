@@ -52,6 +52,8 @@ var checkState = function(obj, mode, c) {
 		data = obj.valves;
 	else if(mode == 1)
 		data = obj.switches;
+	else if(mode == 2)
+		data = obj.autoModes;
 
 	var h = function(data) {
 		var name = data.name;

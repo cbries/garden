@@ -21,6 +21,9 @@ module.exports = {
                             callback(json.data.s0, 0, connection, fakeMoment);
                         if(json.data.s1 != null)
                             callback(json.data.s1, 1, connection, fakeMoment);
+						console.log(json.data.s2);
+						if(json.data.s2 != null)
+							callback(json.data.s2, 2, connection, fakeMoment);
 
                         connection.close();
                     }

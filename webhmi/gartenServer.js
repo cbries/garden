@@ -26,7 +26,7 @@ var log_stdout = process.stdout;
 
 console.log = function(d) { //
 //  log_file.write(util.format(d) + '\n');
-//  log_stdout.write(util.format(d) + '\n');
+  log_stdout.write(util.format(d) + '\n');
 };
 
 console.logfile = function(d) { //
@@ -43,6 +43,10 @@ var valveStates = { "valves" : [
 var switchStates = { "switches" : [
 	{"name": "front", "state": false, "lastAccess": 0, "gpiopin": lightsFront, "interval": 0},
 	{"name": "back", "state": false, "lastAccess": 0, "gpiopin": lightsBack, "interval": 0}
+]};
+
+var autoModeStates = { "autoModes": [
+	{"name": "mainAutoMode", "state": false, "lastAccess": 0, "interval": 0, "script": "/home/pi/gitrepos/garden/webhmi/cmdAutoMode_Full_20_30_30_20.sh", "nameToKill": "cmdAutoMode_Full_20_30_30_20.sh"}
 ]};
 
 function sendWeatherData(c) {
@@ -80,11 +84,18 @@ function resetSwitches() {
 	});
 }
 
+function resetAutoMode() {
+	autoModeStates["autoModes"].forEach(function(entry) {
+		executeCommand("killall " + entry.nameToKill);
+	});
+}
+
 resetValves();
 resetSwitches();
+resetAutoMode();
 
-process.on('SIGTERM', function() { console.log("SIGTERM : shutting down softly..."); resetValves(); resetSwitches(); process.exit(); });
-process.on('SIGINT', function() { console.log("SIGTERM : shutting down softly..."); resetValves(); resetSwitches(); process.exit(); });
+process.on('SIGTERM', function() { console.log("SIGTERM : shutting down softly..."); resetValves(); resetSwitches(); resetAutoMode();  process.exit(); });
+process.on('SIGINT', function() { console.log("SIGTERM : shutting down softly..."); resetValves(); resetSwitches(); resetAutoMode(); process.exit(); });
 
 var server = http.createServer(function(request, response) {
     console.log((new Date()) + ' Received request for ' + request.url);
@@ -135,12 +146,22 @@ function isValidValve(name) {
 
 function isValidSwitch(name) {
 	var o = null;
-        switchStates["switches"].forEach(function(entry){
-                if(entry["name"] === name) {
-                        o = entry;
-                }
-        });
-        return o;
+    switchStates["switches"].forEach(function(entry){
+		if(entry["name"] === name) {
+			o = entry;
+		}
+    });
+    return o;
+}
+
+function isValidAutoMode(name) {
+	var o = null;
+	autoModeStates["autoModes"].forEach(function(entry){
+		if(entry["name"] === name) {
+			o = entry;
+		}
+	});
+	return o;
 }
 
 server.listen(wsListenPort, function() {
@@ -215,7 +236,11 @@ function sendData(c, strType, jsonData) {
 }
 
 function sendUpdate(c) {
-	var data = JSON.stringify({ "type": "update", "data": {s0 : valveStates, s1 : switchStates }});
+	var data = JSON.stringify({ "type": "update", "data": {
+		s0 : valveStates, 
+		s1 : switchStates, 
+		s2 : autoModeStates 
+	}});
 	c.send(data);
 }
 
@@ -226,9 +251,29 @@ function updateValves(c) {
 }
 
 function updateSwitches(c) {
-        var s = switchStates["switches"];
-        for(var i=0; i < s.length; ++i)
-                setGpio(c, s[i]);
+    var s = switchStates["switches"];
+    for(var i=0; i < s.length; ++i)
+		setGpio(c, s[i]);
+}
+
+function updateAutoMode(c) {
+	var m = autoModeStates["autoModes"];
+	
+	// switch all auto modes off first
+	resetValves();
+	resetAutoMode();
+
+	for(var i=0; i < m.length; ++i)
+	{
+		var data = m[i];
+
+		if(data.state === true)
+		{
+			executeCommand(data.script);
+			
+			return;
+		}
+	} 
 }
 
 function handlingMessage(c, json) {	
@@ -301,6 +346,33 @@ function handlingMessage(c, json) {
 			sendData(c, "switchStates", switchStates); 
 		}
 		switchEntry = null;
+	}
+
+	if(json.automode != null && json.automode != 'undefined')
+	{
+		var autoModeName = json.automode; // e.g. "mainAutoMode"
+		//var interval = 
+		var autoModeEntry = isValidAutoMode(autoModeName);
+		if(autoModeEntry == null)
+		{
+			sendError(c, "AutoMode name is not valid: " + autoModeName);
+		}
+		else
+		{
+			var newAutoModeState = !autoModeEntry.state;
+			var v = autoModeStates["autoModes"];
+			autoModeEntry.state = newAutoModeState;
+			if(newAutoModeState == true)
+			{
+			}
+			else
+			{
+			}
+			var d = new Date();
+			autoModeEntry.lastAccess = d.getTime();
+			updateAutoMode(c)
+			sendData(c, "autoModeStates", autoModeStates);
+		}	
 	}
 }
 

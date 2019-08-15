@@ -40,7 +40,10 @@ var dateFormat = require('dateformat');
 //	.demand(['n', 's', 't'])
 //	.argv;
 
-if(process.argv.slice(2).length <= 6)
+//console.log("Argument length: " + process.argv.length);
+//console.log("Argument length: " + process.argv.slice(2).length);
+
+if(process.argv.slice(2).length != 6)
 {
     console.log("Usage: node " + process.argv[1] + " -n [name] -s [true|false] -t [num]");
     return;
@@ -57,7 +60,7 @@ console.log("State:    " + targetState);
 console.log("Interval: " + targetInterval + " minutes");
 
 var checkState = function(obj, mode, c) { 
-	// mode -> 0:=valve, 1:=switch
+	// mode -> 0:=valve, 1:=switch, 2:=automode
   try
   {
 	var data = obj;
@@ -65,27 +68,33 @@ var checkState = function(obj, mode, c) {
 		data = obj.valves;
 	else if(mode == 1)
 		data = obj.switches;
+	else if(mode == 2)
+		data = obj.autoModes;
 
 	var h = function(data) {
 		var name = data.name;
 		var state = data.state;
 
+		console.log("Name: " + name + ", " + state);
+
 		if(name != target)
 			return;
 
-		if(state == targetState)
-		{
-			console.log(target + " is already " + (!targetState ? clc.red('stopped') : clc.green('running')));
-		}
-		else
-		{
+		//if(state == targetState)
+		//{
+		//	console.log(target + " is already " + (!targetState ? clc.red('stopped') : clc.green('running')));
+		//}
+		//else
+		//{
 			if(mode == 0)
 				c.send(JSON.stringify({valve: target, interval: targetInterval}));
 			else if(mode == 1)
 				c.send(JSON.stringify({switches: target, interval: targetInterval}));
+			else if(mode == 2)
+				c.send(JSON.stringify({automode: target, interval: 0}));
 		
 			console.log(target + " " + (!targetState ? clc.red('stopped') : clc.green('running')));
-		}
+		//}
 	};
 
 	if(data != null)
@@ -125,7 +134,9 @@ var checkStates = function() {
 					   		checkState(json.data.s0, 0, connection);
                     	if(json.data.s1 != null)
                             checkState(json.data.s1, 1, connection);
-				   
+						if(json.data.s2 != null)
+							checkState(json.data.s2, 2, connection);				   
+
 						connection.close();
 				    	
 						w = null;
